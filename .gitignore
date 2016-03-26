@@ -7,8 +7,10 @@ install_manifest.txt
 
 
 #eclipse
-#.metadata
+.metadata
 
+#exe
+hdr
 
 # Compiled Object files
 *.slo

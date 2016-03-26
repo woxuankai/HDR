@@ -1,6 +1,6 @@
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <stdint.h>
 
@@ -82,11 +82,22 @@ Mat cal_R(const Mat& src, float Rmax, float n, const Mat& sigma)
 }
 */
 
+const float srcgain =  (1./(256.0*256.0));
+
+void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod);
+
+
+
 
 #define TIMESTAMP(id) \
+{\
+	double temptime = (double)getTickCount();\
 	cout << #id << ": "\
-		<< ((double)getTickCount() - timestart ) \
-			/ getTickFrequency() * 1000 << endl
+		<< (temptime - lasttime ) \
+			/ getTickFrequency() * 1000 << endl;\
+	lasttime = temptime ;\
+}\
+
 
 int main(int argc, char* argv[])
 {
@@ -106,49 +117,20 @@ int main(int argc, char* argv[])
 
 
 	////////single time work//////////
-
+	Mat Lcone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat Lrod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
 	/////////////end//////////////////
 
-int rpt = 5;
-while(rpt-- > 0)
-{
+//int rpt = 5;
+//while(rpt-- > 0)
+//{
 
-	float timestart = (double)getTickCount();
-
-	Mat imgin;
-	origImg.convertTo(imgin, CV_32FC3);
-	switch(origImg.depth())
-	{
-		case CV_8U:
-			imgin /= 255;
-			break;
-		case CV_16U:
-			imgin /= (255*255);
-			break;
-		default :
-			cout << "unknown image depth, quit" << endl;
-			return -2;
-			break;
-	}
+	double timestart = (double)getTickCount();
+	double lasttime = timestart;
 
 
-TIMESTAMP(normalize);
-
-
-	//processImage
-	Mat imginXYZ;
-	cvtColor(imgin, imginXYZ, CV_BGR2XYZ);
-	Mat imgxyzs[3];
-	split(imginXYZ, imgxyzs);
-	//see also mixChannels
-	Mat Lcone,Lrod;
-	Lcone = imgxyzs[1];
-	Lrod = -0.702*imgxyzs[0]\
-			+1.039*imgxyzs[1]\
-			+0.433*imgxyzs[2];
-
-
+	cal_Lcone_Lrod(origImg, Lcone, Lrod);
 TIMESTAMP(rod_cone);
 
 
@@ -223,19 +205,28 @@ TIMESTAMP(DOG);
 	multiply(1-w , DOG_rod, DOG_rod);
 	Mat Lout =  DOG_cone + DOG_rod;
 
+TIMESTAMP(Lout);
+
 	Mat Lcone3c,Lout3c;
 	cvtColor(Lcone, Lcone3c, CV_GRAY2BGR);
 	cvtColor(Lout, Lout3c, CV_GRAY2BGR);
+
+TIMESTAMP(meaningless);
+
 	float s=0.8;
-	Mat imgout;
+	Mat imgout, imgin;
+	origImg.convertTo(imgin, CV_32FC3, srcgain);
 	divide(imgin, Lcone3c, imgout);
+TIMESTAMP(div);
 	pow(imgout , s, imgout);
+TIMESTAMP(pow);
 	multiply(imgout , Lout3c, imgout);
+TIMESTAMP(mul);
 
 	timestart  = ((double)getTickCount() - timestart ) / getTickFrequency() * 1000;
 	cout << "time cost : "<< timestart << endl;
 
-}
+//}
 
 	//namedWindow("origin image", WINDOW_AUTOSIZE);
 	//imshow("origin image", imgin );
@@ -247,6 +238,58 @@ TIMESTAMP(DOG);
 
 
 
+
+
+void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
+{
+    CV_Assert(srcBGR.depth() == CV_16U);
+    CV_Assert(srcBGR.channels() == 3);
+    CV_Assert(srcBGR.data != NULL);
+
+    CV_Assert(Lcone.depth() == CV_32F);
+    CV_Assert(Lcone.channels() == 1);
+    CV_Assert(Lcone.data != srcBGR.data);
+    CV_Assert(Lcone.size == srcBGR.size);
+
+    CV_Assert(Lrod.depth() == CV_32F);
+    CV_Assert(Lrod.channels() == 1);
+    CV_Assert(Lrod.data != srcBGR.data);
+    CV_Assert(Lrod.size == srcBGR.size);
+
+    int channels = 3;
+    int nRows = srcBGR.rows;
+    int nCols = srcBGR.cols;
+
+    if ((srcBGR.isContinuous())&&\
+    		(Lcone.isContinuous())&&\
+			(Lrod.isContinuous()))
+    {
+        nCols *= nRows;
+        nRows = 1;
+    }
+    int i,j;
+    const uint16_t *psrc;
+	float *pcone, *prod;
+
+    for( i = 0; i < nRows; ++i)
+    {
+    	psrc = srcBGR.ptr<uint16_t>(i);
+        pcone = Lcone.ptr<float>(i);
+    	prod = Lrod.ptr<float>(i);
+        for ( j = 0; j < nCols; ++j)
+        {
+        	int srcj = j * channels;
+        	//Lcone = 0.2127*LinR + 0.7152*LinG + 0.0722*LinB;
+        	//Lrod = -0.0602*LinR + 0.5436*LinG + 0.3598*LinB;
+        	pcone[j] = srcgain*0.0722*psrc[j]\
+        			+ srcgain*0.7152*psrc[j+1]\
+					+ srcgain*0.2127*psrc[j+2];
+        	prod[j] = srcgain*0.3598*psrc[j]\
+        			+ srcgain*0.5436*psrc[j+1]\
+					- srcgain*0.0602*psrc[j+2];
+        }
+    }
+}
 
 
 
