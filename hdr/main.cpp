@@ -122,6 +122,11 @@ int main(int argc, char* argv[])
 	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
 	/////////////end//////////////////
 
+	////////temp///////////
+	Mat imgout, imgin;
+	origImg.convertTo(imgin, CV_32FC3, srcgain);
+	////////end/////////
+
 //int rpt = 5;
 //while(rpt-- > 0)
 //{
@@ -129,10 +134,20 @@ int main(int argc, char* argv[])
 	double timestart = (double)getTickCount();
 	double lasttime = timestart;
 
-
+	//processImage
+	//Mat imginXYZ;
+	//cvtColor(imgin, imginXYZ, CV_BGR2XYZ);
+	//Mat imgxyzs[3];
+	//split(imginXYZ, imgxyzs);
+	//see also mixChannels
+	//Mat Lcone1,Lrod1;
+	//Lcone1 = imgxyzs[1];
+	//Lrod1 = -0.702*imgxyzs[0]\
+	//		+1.039*imgxyzs[1]\
+	//		+0.433*imgxyzs[2];
 	cal_Lcone_Lrod(origImg, Lcone, Lrod);
-TIMESTAMP(rod_cone);
 
+TIMESTAMP(rod_cone);
 
 	float arfa = 0.67;
 	float beita = 4;
@@ -214,8 +229,6 @@ TIMESTAMP(Lout);
 TIMESTAMP(meaningless);
 
 	float s=0.8;
-	Mat imgout, imgin;
-	origImg.convertTo(imgin, CV_32FC3, srcgain);
 	divide(imgin, Lcone3c, imgout);
 TIMESTAMP(div);
 	pow(imgout , s, imgout);
@@ -281,12 +294,12 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
         	int srcj = j * channels;
         	//Lcone = 0.2127*LinR + 0.7152*LinG + 0.0722*LinB;
         	//Lrod = -0.0602*LinR + 0.5436*LinG + 0.3598*LinB;
-        	pcone[j] = srcgain*0.0722*psrc[j]\
-        			+ srcgain*0.7152*psrc[j+1]\
-					+ srcgain*0.2127*psrc[j+2];
-        	prod[j] = srcgain*0.3598*psrc[j]\
-        			+ srcgain*0.5436*psrc[j+1]\
-					- srcgain*0.0602*psrc[j+2];
+        	pcone[j] = srcgain*0.0722*psrc[srcj]\
+        			+ srcgain*0.7152*psrc[srcj+1]\
+					+ srcgain*0.2127*psrc[srcj+2];
+        	prod[j] = srcgain*0.3598*psrc[srcj]\
+        			+ srcgain*0.5436*psrc[srcj+1]\
+					- srcgain*0.0602*psrc[srcj+2];
         }
     }
 }
