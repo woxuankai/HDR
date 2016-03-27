@@ -67,9 +67,10 @@ if(maxd<=1)
 end
 
 t=0.1;
+%mina = min(a(:));
+mina = max(Lcone(:))^(-t);
 a=Lcone.^(-t);
-%a : -1 : ?
-w=1./(1-(min(a(:)))+a);
+w=1./(1-mina+a);
 Lout=w.*DOG_cone+(1-w).*DOG_rod;
 
 s=0.8;

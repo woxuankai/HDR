@@ -15,6 +15,10 @@ void cal_R_matrix(const Mat& L, Mat& R,\
 		uint16_t* table_n, uint16_t *table_alpha_mul_n,\
 		float R_max);
 void cal_normalized_pow_table(uint16_t* table, double exp);
+void correct_dog(const Mat& R, Mat& DOG, float KK);
+
+
+
 
 #define TIMESTAMP(id) \
 {\
@@ -41,31 +45,34 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-
 	/////////parameters///////////////
 	float alpha = 0.67;
 	float beta_cone = 4;
 	float beta_rod = 2;
 	float n=0.8;
 	float R_max=2.5;
+	float KK=2.5;
+	float t=0.1;
 	///////////end///////////////////
 	////////one-time work//////////
 	Mat L_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat L_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat R_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat R_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-
 	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
-
+	Mat a = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat Lout = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	float beta_cone_pow_n = pow(beta_cone,n);
 	float beta_rod_pow_n = pow(beta_rod,n);
 
 	uint16_t table_alpha_mul_n[UINT16_MAX+1] = {0};
 	uint16_t table_n[UINT16_MAX+1] = {0};
+	uint16_t table_t[UINT16_MAX+1] = {0};
 	cal_normalized_pow_table(table_alpha_mul_n, alpha*n);
 	cal_normalized_pow_table(table_n, n);
-
+	cal_normalized_pow_table(table_t, -t);
 	/////////////end//////////////////
+
 
 	////////temporary///////////
 	Mat imgout, imgin;
@@ -92,11 +99,11 @@ TIMESTAMP(genR);
 	filter2D(R_rod, DOG_rod, CV_32F, hh);
 TIMESTAMP(dofilt);
 
-	double minvalue, maxvalue;
-	float KK=2.5;
+	//correct_dog(R_cone, DOG_cone, KK);
+	//correct_dog(R_rod, DOG_rod, KK);
 	DOG_cone = R_cone + KK * DOG_cone;
 	DOG_rod = R_rod + KK * DOG_rod;
-
+	double minvalue, maxvalue;
 	minMaxLoc(DOG_rod, &minvalue, &maxvalue);
 	float maxd = maxvalue;
 	if (maxd<=1)
@@ -113,26 +120,21 @@ TIMESTAMP(dofilt);
 	    		(DOG_rod-minDOG_rod)/
 	    		(maxDOG_rod-minDOG_rod);
 	}
-TIMESTAMP(DOG);
+TIMESTAMP(correctDOG);
 
-	float t=0.1;
-	Mat a;
-	pow(L_cone, -t, a);
-	minMaxLoc(a, &minvalue, &maxvalue);
-	float minVal = minvalue;
-	Mat w=1/(1 - minVal +a);
-TIMESTAMP(cal omega);
+	//pow(L_cone, -t, a);
+	//minMaxLoc(a, &minvalue, &maxvalue);
+	//float minVal = minvalue;
+	//Mat w=1/(1 - minVal +a);
+	//multiply(w , DOG_cone, DOG_cone);
+	//multiply(1-w , DOG_rod, DOG_rod);
+	//Lout =  DOG_cone + DOG_rod;
 
-	multiply(w , DOG_cone, DOG_cone);
-	multiply(1-w , DOG_rod, DOG_rod);
-	Mat Lout =  DOG_cone + DOG_rod;
 TIMESTAMP(weightedadd);
-
 
 	Mat Lcone3c,Lout3c;
 	cvtColor(L_cone, Lcone3c, CV_GRAY2BGR);
 	cvtColor(Lout, Lout3c, CV_GRAY2BGR);
-
 TIMESTAMP(meaningless);
 
 	float s=0.8;
@@ -142,7 +144,7 @@ TIMESTAMP(meaningless);
 //TIMESTAMP(pow);
 	multiply(imgout , Lout3c, imgout);
 //TIMESTAMP(mul);
-	TIMESTAMP(mul);
+TIMESTAMP(RGB);
 
 	timestart  = ((double)getTickCount() - timestart ) / getTickFrequency() * 1000;
 	cout << "time cost : "<< timestart << endl;
@@ -158,7 +160,6 @@ TIMESTAMP(meaningless);
 	}
 	return 0;
 }
-
 
 
 void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
@@ -230,8 +231,6 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     }
 }
 
-
-
 void cal_R_matrix(const Mat& L, Mat& R,\
 		float beta_pow_n,\
 		uint16_t* table_n, uint16_t *table_alpha_mul_n,\
@@ -289,6 +288,23 @@ void cal_normalized_pow_table(uint16_t* table, double exp)
 		table[index] = pow(index, exp)*scale;
 	return;
 }
+
+void correct_dog(const Mat& R, Mat& DOG, float KK)
+{
+	CV_Assert(false);
+	return ;
+}
+
+void cal_Lout(const Mat& L_cone,const Mat& DOG_cone, const Mat& DOG_rod,\
+		Mat& Lout, )
+
+pow(L_cone, -t, a);
+minMaxLoc(a, &minvalue, &maxvalue);
+float minVal = minvalue;
+Mat w=1/(1 - minVal +a);
+multiply(w , DOG_cone, DOG_cone);
+multiply(1-w , DOG_rod, DOG_rod);
+Lout =  DOG_cone + DOG_rod;
 
 
 /*
