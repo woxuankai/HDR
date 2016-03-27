@@ -8,7 +8,7 @@
 %Lin = hdr;
 hdr = imread('smalloffice.tiff');
 %hdr = imread('jersey_solux-3500.tif');
-Lin= single(hdr)/255/255;
+Lin= single(hdr)/65535;
 %Lin range 0~1
 
 
@@ -68,16 +68,17 @@ DOG_cone=R_cone+KK*DOG_cone;
 DOG_rod=R_rod+KK*DOG_rod;
 %DOG_cone : -1 ~ 5
 %DOG_rod  : -1 ~ 5
-
-t=0.1;
-a=Lcone.^(-t);
-%a : -1 : ?
-w=1./(1-(min(a(:)))+a);
 maxd=max(DOG_rod(:));
 if (maxd<=1)
     DOG_cone=(DOG_cone-min(DOG_cone(:)))/(max(DOG_cone(:))-min(DOG_cone(:)))+eps;
     DOG_rod=(DOG_rod-min(DOG_rod(:)))/(max(DOG_rod(:))-min(DOG_rod(:)))+eps;
 end
+
+
+t=0.1;
+a=Lcone.^(-t);
+%a : -1 : ?
+w=1./(1-(min(a(:)))+a);
 Lout=w.*DOG_cone+(1-w).*DOG_rod;
 
 
