@@ -10,11 +10,8 @@ using namespace cv;
 
 
 void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod);
-void cal_R_matrix(const Mat& L, Mat& R,\
-		float beta_pow_n,\
-		uint16_t* table_n, uint16_t *table_alpha_mul_n,\
-		float R_max);
-void cal_normalized_pow_table(uint16_t* table, double exp);
+void cal_R(const Mat& L, Mat& R, float* table);
+void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta);
 void correct_dog(const Mat& R, Mat& DOG, float KK);
 
 
@@ -62,15 +59,12 @@ int main(int argc, char* argv[])
 	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
 	Mat a = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat Lout = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-	float beta_cone_pow_n = pow(beta_cone,n);
-	float beta_rod_pow_n = pow(beta_rod,n);
 
-	uint16_t table_alpha_mul_n[UINT16_MAX+1] = {0};
-	uint16_t table_n[UINT16_MAX+1] = {0};
-	uint16_t table_t[UINT16_MAX+1] = {0};
-	cal_normalized_pow_table(table_alpha_mul_n, alpha*n);
-	cal_normalized_pow_table(table_n, n);
-	cal_normalized_pow_table(table_t, -t);
+	float table_L2R_cone[UINT16_MAX+1] = {0};
+	float table_L2R_rod[UINT16_MAX+1] = {0};
+	cal_L2R_table(table_L2R_cone, R_max, n, alpha, beta_cone);
+	cal_L2R_table(table_L2R_rod, R_max, n, alpha, beta_rod);
+
 	/////////////end//////////////////
 
 
@@ -88,10 +82,8 @@ int main(int argc, char* argv[])
 	cal_Lcone_Lrod(origImg, L_cone, L_rod);
 TIMESTAMP(rod_cone);
 
-	cal_R_matrix(L_cone, R_cone,\
-			beta_cone_pow_n,table_n,table_alpha_mul_n, R_max);
-	cal_R_matrix(L_rod, R_rod,\
-			beta_rod_pow_n,table_n,table_alpha_mul_n, R_max);
+	cal_R(L_cone, R_cone, table_L2R_cone);
+	cal_R(L_rod, R_rod, table_L2R_rod);
 TIMESTAMP(genR);
 
 	Mat DOG_cone, DOG_rod;
@@ -122,13 +114,13 @@ TIMESTAMP(dofilt);
 	}
 TIMESTAMP(correctDOG);
 
-	//pow(L_cone, -t, a);
-	//minMaxLoc(a, &minvalue, &maxvalue);
-	//float minVal = minvalue;
-	//Mat w=1/(1 - minVal +a);
-	//multiply(w , DOG_cone, DOG_cone);
-	//multiply(1-w , DOG_rod, DOG_rod);
-	//Lout =  DOG_cone + DOG_rod;
+	pow(L_cone, -t, a);
+	minMaxLoc(a, &minvalue, &maxvalue);
+	float minVal = minvalue;
+	Mat w=1/(1 - minVal +a);
+	multiply(w , DOG_cone, DOG_cone);
+	multiply(1-w , DOG_rod, DOG_rod);
+	Lout =  DOG_cone + DOG_rod;
 
 TIMESTAMP(weightedadd);
 
@@ -231,24 +223,22 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     }
 }
 
-void cal_R_matrix(const Mat& L, Mat& R,\
-		float beta_pow_n,\
-		uint16_t* table_n, uint16_t *table_alpha_mul_n,\
-		float R_max)
+
+
+
+
+
+void cal_R(const Mat& L, Mat& R, float* table)
 {
     CV_Assert(L.depth() == CV_32F);
     CV_Assert(L.channels() == 1);
     CV_Assert(L.data != NULL);
-
     CV_Assert(R.depth() == CV_32F);
     CV_Assert(R.channels() == 1);
     CV_Assert(R.data != L.data);
     CV_Assert(R.size == L.size);
+    CV_Assert(table != NULL);
 
-    CV_Assert(table_n != NULL);
-    CV_Assert(table_alpha_mul_n != NULL);
-
-    int channels = 3;
     int nRows = L.rows;
     int nCols = L.cols;
 
@@ -269,23 +259,22 @@ void cal_R_matrix(const Mat& L, Mat& R,\
         for ( j = 0; j < nCols; ++j)
         {
         	uint16_t index = (uint16_t)(pL[j]*UINT16_MAX+0.5);
-        	uint32_t L_pow_n = table_n[index];
-        	uint32_t L_pow_alpha_mul_n = table_alpha_mul_n[index];
-        	pR[j] = R_max*L_pow_n /\
-        			(L_pow_n + \
-        			L_pow_alpha_mul_n*beta_pow_n +\
-					FLT_MIN);
+        	pR[j] = table[index];
         }
     }
 	return;
 }
 
-void cal_normalized_pow_table(uint16_t* table, double exp)
+void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta)
 {
 	CV_Assert(table != NULL);
-	double scale = UINT16_MAX/pow(UINT16_MAX,exp);
+
 	for(uint32_t index = 0; index <= UINT16_MAX; index++)
-		table[index] = pow(index, exp)*scale;
+	{
+		double Lpown = pow(double(index)/UINT16_MAX,n);
+		double temp = Lpown + pow(pow(double(index)/UINT16_MAX,alpha)*beta,n)+FLT_MIN;
+		table[index] = Rmax*Lpown/temp;
+	}
 	return;
 }
 
@@ -295,16 +284,8 @@ void correct_dog(const Mat& R, Mat& DOG, float KK)
 	return ;
 }
 
-void cal_Lout(const Mat& L_cone,const Mat& DOG_cone, const Mat& DOG_rod,\
+//void cal_Lout(const Mat& L_cone,const Mat& DOG_cone, const Mat& DOG_rod,\
 		Mat& Lout, )
-
-pow(L_cone, -t, a);
-minMaxLoc(a, &minvalue, &maxvalue);
-float minVal = minvalue;
-Mat w=1/(1 - minVal +a);
-multiply(w , DOG_cone, DOG_cone);
-multiply(1-w , DOG_rod, DOG_rod);
-Lout =  DOG_cone + DOG_rod;
 
 
 /*
