@@ -1,5 +1,5 @@
 hdr = imread('smalloffice.tiff');
-Lin= single(hdr)/65535;
+Lin= single(hdr);
 
 %parameters
 alpha=0.67;
@@ -12,20 +12,33 @@ t=0.1;
 s=0.8;
 
 %table: L2R(container in table is float)
-hL2R = @(L,Rmax,n,alpha,beta) Rmax*(L.^n)./((L.^n)+((L.^alpha).*beta).^n);
+hL2R = @(L,Rmax,n,alpha,beta) single(Rmax.*(L.^n)./((L.^n)+((L.^alpha).*beta).^n));
 index = 0 : (2^16-1);
 tableL2R_cone = hL2R(double(index)./65535,Rmax,n,alpha,beta_cone);
 tableL2R_rod = hL2R(double(index)./65535,Rmax,n,alpha,beta_rod);
+for i = 0 : (2^16-1)
+    if isnan(tableL2R_cone(i+1))
+        tableL2R_cone(i+1) = 0;
+    end
+    if isnan(tableL2R_rod(i+1))
+        tableL2R_rod(i+1) = 0;
+    end
+end
+
 
 %RGB2L
-Lcone = 0.2127*Lin(:,:,1) + 0.7152*Lin(:,:,2) + 0.0722*Lin(:,:,3);
-Lrod = -0.0602*Lin(:,:,1) + 0.5436*Lin(:,:,2) + 0.3598*Lin(:,:,3);
-morethan0 = @(x) (x>0).*x;
+Lcone = (0.2127*Lin(:,:,1) + 0.7152*Lin(:,:,2) + 0.0722*Lin(:,:,3))/65535;
+Lrod = (-0.0602*Lin(:,:,1) + 0.5436*Lin(:,:,2) + 0.3598*Lin(:,:,3))/65535;
+
+morethan0 = @(x) (x>1.0/65535).*(x-1.0/65536)+1.0/65535;
 lessthan1 = @(x) (x<1).*(x-1)+1;
 Lrod = morethan0(Lrod);
 Lrod = lessthan1(Lrod);
 Lcone = morethan0(Lcone);
 Lcone = lessthan1(Lcone);
+
+
+
 
 %cal: L2R
 R_cone = tableL2R_cone(round(Lcone*65535)+1);
@@ -53,6 +66,21 @@ w=1./(1-mina+a);
 Lout=w.*DOG_cone+(1-w).*DOG_rod;
 
 
-RGB(:,:,1)=((Lin(:,:,1)./(Lcone+eps)).^s).*Lout;
-RGB(:,:,2)=((Lin(:,:,2)./(Lcone+eps)).^s).*Lout;
-RGB(:,:,3)=((Lin(:,:,3)./(Lcone+eps)).^s).*Lout;
+RGB(:,:,1)=((Lin(:,:,1)/65535./(Lcone+eps)).^s).*Lout;
+RGB(:,:,2)=((Lin(:,:,2)/65535./(Lcone+eps)).^s).*Lout;
+RGB(:,:,3)=((Lin(:,:,3)/65535./(Lcone+eps)).^s).*Lout;
+
+
+
+statisc = ...
+    [...
+    min(min(Lrod)), max(max(Lrod)), mean(mean(Lrod));...
+    min(min(Lcone)), max(max(Lcone)), mean(mean(Lcone)) ;...
+    min(min(R_rod)), max(max(R_rod)), mean(mean(R_rod))  ;...
+    min(min(R_cone)), max(max(R_cone)), mean(mean(R_cone))...
+    ];
+
+statisc
+close all;
+imshow(RGB)
+

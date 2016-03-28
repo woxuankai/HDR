@@ -9,9 +9,18 @@ using namespace std;
 using namespace cv;
 
 
+
+void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta);
+void cal_Lcone2a_table(float* table, float t);
+void cal_Lconepownegatives_table(float* table, float s);
+
 void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod);
 void cal_R(const Mat& L, Mat& R, float* table);
-void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta);
+void cal_BGR(const Mat& Lcone,\
+		const Mat& DOGcone, const Mat& DOGrod,\
+		Mat& BGR,\
+		float *table_Lcone2a,\
+		float *table_Lconepownegatives);
 void correct_dog(const Mat& R, Mat& DOG, float KK);
 
 
@@ -50,28 +59,33 @@ int main(int argc, char* argv[])
 	float R_max=2.5;
 	float KK=2.5;
 	float t=0.1;
+	float s=0.8;
 	///////////end///////////////////
 	////////one-time work//////////
-	Mat L_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-	Mat L_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat L_cone = Mat::zeros(origImg.rows, origImg.cols, CV_16UC1);
+	Mat L_rod = Mat::zeros(origImg.rows, origImg.cols, CV_16UC1);
 	Mat R_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat R_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
-	Mat a = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-	Mat Lout = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	//Mat a = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	//Mat Lout = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 
 	float table_L2R_cone[UINT16_MAX+1] = {0};
 	float table_L2R_rod[UINT16_MAX+1] = {0};
+	float table_Lcone2a[UINT16_MAX+1] = {0};
+	float table_Lconepownegatives[UINT16_MAX+1] = {0};
+
 	cal_L2R_table(table_L2R_cone, R_max, n, alpha, beta_cone);
 	cal_L2R_table(table_L2R_rod, R_max, n, alpha, beta_rod);
-
+	cal_Lcone2a_table(table_Lcone2a, t);
+	cal_Lconepownegatives_table(table_Lconepownegatives, s);
 	/////////////end//////////////////
 
 
 	////////temporary///////////
-	Mat imgout, imgin;
-	const float srcgain =  (1./(UINT16_MAX));
-	origImg.convertTo(imgin, CV_32FC3, srcgain);
+	//Mat imgout, imgin;
+	//const float srcgain =  (1./(UINT16_MAX));
+	//origImg.convertTo(imgin, CV_32FC3, srcgain);
 	////////end/////////
 
 
@@ -96,9 +110,11 @@ TIMESTAMP(dofilt);
 	DOG_cone = R_cone + KK * DOG_cone;
 	DOG_rod = R_rod + KK * DOG_rod;
 	double minvalue, maxvalue;
-	minMaxLoc(DOG_rod, &minvalue, &maxvalue);
+	minMaxLoc(DOG_rod, &minvalue, &maxvalue);//in cb4: loc: 3.564
+
 	float maxd = maxvalue;
-	if (maxd<=1)
+	//if (maxd<=1)
+	if(0)
 	{
 		float minDOG_rod = minvalue,
 				maxDOG_rod = maxvalue;
@@ -114,40 +130,30 @@ TIMESTAMP(dofilt);
 	}
 TIMESTAMP(correctDOG);
 
-	pow(L_cone, -t, a);
-	minMaxLoc(a, &minvalue, &maxvalue);
-	float minVal = minvalue;
-	Mat w=1/(1 - minVal +a);
-	multiply(w , DOG_cone, DOG_cone);
-	multiply(1-w , DOG_rod, DOG_rod);
-	Lout =  DOG_cone + DOG_rod;
-
-TIMESTAMP(weightedadd);
-
-	Mat Lcone3c,Lout3c;
-	cvtColor(L_cone, Lcone3c, CV_GRAY2BGR);
-	cvtColor(Lout, Lout3c, CV_GRAY2BGR);
-TIMESTAMP(meaningless);
-
-	float s=0.8;
-	divide(imgin, Lcone3c, imgout);
-//TIMESTAMP(div);
-	pow(imgout , s, imgout);
-//TIMESTAMP(pow);
-	multiply(imgout , Lout3c, imgout);
-//TIMESTAMP(mul);
-TIMESTAMP(RGB);
+	cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
+			table_Lcone2a,table_Lconepownegatives);
+	TIMESTAMP(calBGR);
 
 	timestart  = ((double)getTickCount() - timestart ) / getTickFrequency() * 1000;
 	cout << "time cost : "<< timestart << endl;
 	////////////////////////////end infinite loop///////////////////////////////////
 
+
+	//minMaxLoc(L_rod, &minvalue, &maxvalue);
+	//cout << "L_rod min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(L_rod).val[0] << endl;
+	//minMaxLoc(L_cone, &minvalue, &maxvalue);
+	//cout << "L_cone min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(L_cone).val[0] << endl;
+	//minMaxLoc(R_rod, &minvalue, &maxvalue);
+	//cout << "R_rod min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(R_rod).val[0] << endl;
+	//minMaxLoc(R_cone, &minvalue, &maxvalue);
+	//cout << "R_cone min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(R_cone).val[0] << endl;
+
 	if((argc == 3)&&(*(argv[2]) == 'd'))
 	{
-		namedWindow("origin image", WINDOW_AUTOSIZE);
-		imshow("origin image", imgin );
+		//namedWindow("origin image", WINDOW_AUTOSIZE);
+		//imshow("origin image", imgin );
 		namedWindow("Output", WINDOW_AUTOSIZE);
-		imshow("Output", imgout);
+		imshow("Output", origImg);
 		waitKey(0);
 	}
 	return 0;
@@ -160,25 +166,21 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     CV_Assert(srcBGR.channels() == 3);
     CV_Assert(srcBGR.data != NULL);
 
-    CV_Assert(Lcone.depth() == CV_32F);
+    CV_Assert(Lcone.depth() == CV_16U);
     CV_Assert(Lcone.channels() == 1);
     CV_Assert(Lcone.data != srcBGR.data);
     CV_Assert(Lcone.size == srcBGR.size);
 
-    CV_Assert(Lrod.depth() == CV_32F);
+    CV_Assert(Lrod.depth() == CV_16U);
     CV_Assert(Lrod.channels() == 1);
     CV_Assert(Lrod.data != srcBGR.data);
     CV_Assert(Lrod.size == srcBGR.size);
 
-    const float srcgain = 1./(UINT16_MAX);
 	//Lcone = 0.2127*LinR + 0.7152*LinG + 0.0722*LinB;
 	//Lrod = -0.0602*LinR + 0.5436*LinG + 0.3598*LinB;
-    const float bgr2cone[3] = {srcgain*0.0722,\
-    		srcgain*0.7152,\
-			srcgain*0.2127};
-    const float bgr2rod[3] = {srcgain*0.3598,\
-    		srcgain*0.5436,\
-			-srcgain*0.0602};
+    const float bgr2cone[3] = {0.072169, 0.715160, 0.212671};
+    const float bgr2rod[3] = {0.359774936, 0.543640649, -0.060205215};
+    //const float bgr2rod[3] = {0.359775, 0.543641, -0.060205};
 
     int channels = 3;
     int nRows = srcBGR.rows;
@@ -193,44 +195,42 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     }
     int i,j;
     const uint16_t *psrc;
-	float *pcone, *prod;
+    uint16_t *pcone, *prod;
 
     for( i = 0; i < nRows; ++i)
     {
     	psrc = srcBGR.ptr<uint16_t>(i);
-        pcone = Lcone.ptr<float>(i);
-    	prod = Lrod.ptr<float>(i);
+        pcone = Lcone.ptr<uint16_t>(i);
+    	prod = Lrod.ptr<uint16_t>(i);
+    	float temp;
         for ( j = 0; j < nCols; ++j)
         {
         	int srcj = j * channels;
-
-        	pcone[j] = bgr2cone[0]*psrc[srcj]\
+        	temp = bgr2cone[0]*psrc[srcj]\
         			+ bgr2cone[1]*psrc[srcj+1]\
-					+ bgr2cone[2]*psrc[srcj+2];
-        	//if(pcone[j] <= 0)
-        	//	pcone[j] = 0;
-        	if(pcone[j] > 1)
-        		pcone[j] = 1;
-        	prod[j] = bgr2rod[0]*psrc[srcj]\
+					+ bgr2cone[2]*psrc[srcj+2] + 0.5;
+        	if(temp < 1)
+        		temp = 1;
+        	if(temp > UINT16_MAX)
+        		temp = UINT16_MAX;
+        	pcone[j] = temp;
+
+        	temp = bgr2rod[0]*psrc[srcj]\
         			+ bgr2rod[1]*psrc[srcj+1]\
-					+ bgr2rod[2]*psrc[srcj+2];
-        	if(prod[j] < 0)
-        		//prod[j] = FLT_MIN;
-        		prod[j] = 0;
-        	if(prod[j] > 1)
-        		prod[j] = 1;
+					+ bgr2rod[2]*psrc[srcj+2] + 0.5;
+        	if(temp < 1)
+        		temp = 1;
+        	if(temp > UINT16_MAX)
+        		temp = UINT16_MAX;
+        	prod[j] = temp;
         }
     }
 }
 
 
-
-
-
-
 void cal_R(const Mat& L, Mat& R, float* table)
 {
-    CV_Assert(L.depth() == CV_32F);
+    CV_Assert(L.depth() == CV_16U);
     CV_Assert(L.channels() == 1);
     CV_Assert(L.data != NULL);
     CV_Assert(R.depth() == CV_32F);
@@ -249,17 +249,16 @@ void cal_R(const Mat& L, Mat& R, float* table)
         nRows = 1;
     }
     int i,j;
-    const float *pL;
+    const uint16_t *pL;
     float *pR;
 
     for( i = 0; i < nRows; ++i)
     {
-    	pL = L.ptr<float>(i);
+    	pL = L.ptr<uint16_t>(i);
         pR = R.ptr<float>(i);
         for ( j = 0; j < nCols; ++j)
         {
-        	uint16_t index = (uint16_t)(pL[j]*UINT16_MAX+0.5);
-        	pR[j] = table[index];
+        	pR[j] = table[pL[j]];
         }
     }
 	return;
@@ -272,8 +271,12 @@ void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta)
 	for(uint32_t index = 0; index <= UINT16_MAX; index++)
 	{
 		double Lpown = pow(double(index)/UINT16_MAX,n);
-		double temp = Lpown + pow(pow(double(index)/UINT16_MAX,alpha)*beta,n)+FLT_MIN;
-		table[index] = Rmax*Lpown/temp;
+		double temp = Lpown + pow(pow(double(index)/UINT16_MAX,alpha)*beta,n);
+		if(temp == 0)
+			temp = 0;
+		else
+			temp = Rmax*Lpown/temp;
+		table[index] = temp;
 	}
 	return;
 }
@@ -284,43 +287,133 @@ void correct_dog(const Mat& R, Mat& DOG, float KK)
 	return ;
 }
 
-//void cal_Lout(const Mat& L_cone,const Mat& DOG_cone, const Mat& DOG_rod,\
-		Mat& Lout, )
-
-
-/*
- 	if(1)
+void cal_Lcone2a_table(float* table, float t)
+{
+	CV_Assert(t > 0);
+	CV_Assert(table != NULL);
+	for(int i=0; i<=UINT16_MAX; i++)
 	{
-		double time = (double)getTickCount();
-		time = (double)getTickCount();
-		float tempfloat = 1;
-		for(int j=0;j<1000;j++)
-			for(uint32_t i=1; i <= 1000; i=i+1)
-				tempfloat = tempfloat*i;
-		time  = ((double)getTickCount() - time ) / getTickFrequency() * 1000;
-		cout << tempfloat << "float timecost in ms: " << time << endl;
-
-		uint32_t tempint = 1;
-		for(int j=0;j<1000;j++)
-			for(uint32_t i=1; i <= 1000000; i=i+1)
-				tempint = tempint*i;
-		time  = ((double)getTickCount() - time ) / getTickFrequency() * 1000;
-		cout <<  tempint <<"int timecost in ms: " << time << endl;
-
-		time = (double)getTickCount();
-		tempfloat = 1;
-		for(int j=0;j<1000;j++)
-			for(uint32_t i=1; i <= 1000000; i=i+1)
-				tempfloat = tempfloat*i;
-		time  = ((double)getTickCount() - time ) / getTickFrequency() * 1000;
-		cout << tempfloat << "float timecost in ms: " << time << endl;
-
-		tempint = 1;
-		for(int j=0;j<1000;j++)
-			for(uint32_t i=1; i <= 1000000; i=i+1)
-				tempint = tempint*i;
-		time  = ((double)getTickCount() - time ) / getTickFrequency() * 1000;
-		cout <<  tempint <<"int timecost in ms: " << time << endl;
+		double temp;
+		temp = pow(double(i)/UINT16_MAX, -t);
+		if(i==0)
+			table[i] = FLT_MAX;
+		else
+			table[i] = temp;
 	}
- */
+}
+
+void cal_Lconepownegatives_table(float* table, float s)
+{
+	CV_Assert(s > 0);
+	CV_Assert(table != NULL);
+	for(int i=0; i<=UINT16_MAX; i++)
+	{
+		double temp;
+		temp = pow(double(i)/UINT16_MAX, -s);
+		if(i==0)
+			table[i] = UINT16_MAX;
+		table[i] = temp;
+	}
+}
+
+void cal_BGR(const Mat& Lcone,\
+		const Mat& DOGcone, const Mat& DOGrod,\
+		Mat& BGR,\
+		float *table_Lcone2a,\
+		float *table_Lconepownegatives)
+{
+    CV_Assert(BGR.depth() == CV_16U);
+    CV_Assert(BGR.channels() == 3);
+    CV_Assert(BGR.data != NULL);
+    CV_Assert(Lcone.depth() == CV_16U);
+    CV_Assert(Lcone.channels() == 1);
+    CV_Assert(Lcone.data != BGR.data);
+    CV_Assert(Lcone.size == BGR.size);
+    CV_Assert(DOGcone.depth() == CV_32F);
+    CV_Assert(DOGcone.channels() == 1);
+    CV_Assert(DOGcone.data != BGR.data);
+    CV_Assert(DOGcone.size == BGR.size);
+    CV_Assert(DOGrod.depth() == CV_32F);
+    CV_Assert(DOGrod.channels() == 1);
+    CV_Assert(DOGrod.data != BGR.data);
+    CV_Assert(DOGrod.size == BGR.size);
+    CV_Assert(table_Lcone2a != NULL);
+    CV_Assert(table_Lconepownegatives != NULL);
+
+    double minvalue,maxvalue;
+    minMaxLoc(Lcone, &minvalue, &maxvalue);
+    float mina;
+    mina = table_Lcone2a[(uint16_t)maxvalue];
+
+    int channels = BGR.channels();
+    int nRows = BGR.rows;
+    int nCols = BGR.cols;
+
+    if ((BGR.isContinuous())&&\
+    		(Lcone.isContinuous())&&\
+    		(DOGcone.isContinuous())&&\
+			(DOGrod.isContinuous()))
+    {
+        nCols *= nRows;
+        nRows = 1;
+    }
+    int i,j;
+    uint16_t *pBGR;
+    const uint16_t *pLcone;
+    const float *pDOGcone, *pDOGrod;
+    float tempbgr;
+
+    for( i = 0; i < nRows; ++i)
+    {
+    	pBGR = BGR.ptr<uint16_t>(i);
+        pLcone = Lcone.ptr<uint16_t>(i);
+    	pDOGcone = DOGcone.ptr<float>(i);
+    	pDOGrod = DOGrod.ptr<float>(i);
+
+        for ( j = 0; j < nCols; ++j)
+        {
+        	int BGRj = j * channels;
+        	uint16_t Lconevalue;
+        	float DOGconevalue,DOGrodvalue;
+        	float a,w,Lout;
+        	Lconevalue = pLcone[j];
+        	DOGconevalue = pDOGcone[j];
+        	DOGrodvalue = pDOGrod[j];
+
+        	a = table_Lcone2a[Lconevalue];
+        	w = 1/(1-mina+a);
+        	Lout = w*DOGconevalue + (1-w)*DOGrodvalue;
+
+        	tempbgr = pBGR[BGRj]*\
+        			table_Lconepownegatives[Lconevalue]*\
+					Lout + 0.5;
+        	if(tempbgr < 0)
+        		tempbgr = 0;
+        	if(tempbgr > UINT16_MAX)
+        		tempbgr = UINT16_MAX;
+        	pBGR[BGRj] = tempbgr;
+
+        	tempbgr = pBGR[BGRj+1]*\
+        			table_Lconepownegatives[Lconevalue]*\
+					Lout + 0.5;
+        	if(tempbgr < 0)
+        		tempbgr = 0;
+        	if(tempbgr > UINT16_MAX)
+        		tempbgr = UINT16_MAX;
+        	pBGR[BGRj+1] = tempbgr;
+
+        	tempbgr = pBGR[BGRj+2]*\
+        			table_Lconepownegatives[Lconevalue]*\
+					Lout + 0.5;
+        	if(tempbgr < 0)
+        		tempbgr = 0;
+        	if(tempbgr > UINT16_MAX)
+        		tempbgr = UINT16_MAX;
+        	pBGR[BGRj+2] = tempbgr;
+        }
+    }
+    return;
+}
+
+
 
