@@ -1,3 +1,4 @@
+clear all;
 hdr = imread('smalloffice.tiff');
 Lin= single(hdr);
 
@@ -45,14 +46,29 @@ R_cone = tableL2R_cone(round(Lcone*65535)+1);
 R_rod = tableL2R_rod(round(Lrod*65535)+1);
 
 %generate kernel
-hh=fspecial('gaussian',[21 21],1)-fspecial('gaussian',[21 21],4);
+
+%fix DOG
+%replace 2D guassian kernel with 1D guassian kernel
+gk__ =@(ksize) 0:ksize-1;
+gk_  =@(ksize,sigma) exp(-(gk__(ksize)-(ksize-1)/2).^2/(2*sigma^2));
+gk = @(ksize,sigma) gk_(ksize,sigma)/sum(gk_(ksize,sigma));
+hh = (gk(21,1) - gk(21,4))*KK;
+hh(1,11) = hh(1,11) + 1;
+
+%hh=fspecial('gaussian',[21 21],1)-fspecial('gaussian',[21 21],4);
+%hh = hh*KK;
+%hh(11,11) = hh(11,11) + 1;
+
 %filt
+
 DOG_cone= imfilter(R_cone,hh,'conv','same','replicate');
 DOG_rod = imfilter(R_rod,hh,'conv','same','replicate');
 
 %fix dog
-DOG_cone=R_cone+KK*DOG_cone;
-DOG_rod=R_rod+KK*DOG_rod;
+%DOG_cone=R_cone+KK*DOG_cone;
+%DOG_rod=R_rod+KK*DOG_rod;
+%DOG_cone=R_cone+DOG_cone;
+%DOG_rod=R_rod+DOG_rod;
 maxd=max(DOG_rod(:));
 if(maxd<=1)
     DOG_cone=(DOG_cone-min(DOG_cone(:)))/(max(DOG_cone(:))-min(DOG_cone(:)))+eps;
@@ -80,7 +96,8 @@ statisc = ...
     min(min(R_cone)), max(max(R_cone)), mean(mean(R_cone))...
     ];
 
-statisc
-close all;
+%statisc
+%close all;
+figure;
 imshow(RGB)
 

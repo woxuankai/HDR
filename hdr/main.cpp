@@ -4,10 +4,13 @@
 #include <iostream>
 #include <stdint.h>
 #include <limits.h>
-
+#include <semaphore.h>
+#include <pthread.h>
 using namespace std;
 using namespace cv;
 
+
+int threadnum = 1;
 
 
 void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta);
@@ -21,10 +24,6 @@ void cal_BGR(const Mat& Lcone,\
 		Mat& BGR,\
 		float *table_Lcone2a,\
 		float *table_Lconepownegatives);
-void correct_dog(const Mat& R, Mat& DOG, float KK);
-
-
-
 
 #define TIMESTAMP(id) \
 {\
@@ -38,6 +37,8 @@ void correct_dog(const Mat& R, Mat& DOG, float KK);
 
 int main(int argc, char* argv[])
 {
+
+
 	if(argc < 2)
 	{
 		cout << "usage:" << endl;
@@ -66,9 +67,12 @@ int main(int argc, char* argv[])
 	Mat L_rod = Mat::zeros(origImg.rows, origImg.cols, CV_16UC1);
 	Mat R_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat R_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-	Mat hh = getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F);
-	//Mat a = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
-	//Mat Lout = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat DOG_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat DOG_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
+	Mat hh = (getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F))*KK;
+	hh.at<float>(1,11) += 1;
+
+	//cout << hh << endl;
 
 	float table_L2R_cone[UINT16_MAX+1] = {0};
 	float table_L2R_rod[UINT16_MAX+1] = {0};
@@ -82,13 +86,6 @@ int main(int argc, char* argv[])
 	/////////////end//////////////////
 
 
-	////////temporary///////////
-	//Mat imgout, imgin;
-	//const float srcgain =  (1./(UINT16_MAX));
-	//origImg.convertTo(imgin, CV_32FC3, srcgain);
-	////////end/////////
-
-
 	////////////////////////////infinite loop///////////////////////////////////
 	double timestart = (double)getTickCount();
 	double lasttime = timestart;
@@ -100,15 +97,15 @@ TIMESTAMP(rod_cone);
 	cal_R(L_rod, R_rod, table_L2R_rod);
 TIMESTAMP(genR);
 
-	Mat DOG_cone, DOG_rod;
+
 	filter2D(R_cone, DOG_cone, CV_32F, hh);
 	filter2D(R_rod, DOG_rod, CV_32F, hh);
 TIMESTAMP(dofilt);
 
-	//correct_dog(R_cone, DOG_cone, KK);
-	//correct_dog(R_rod, DOG_rod, KK);
-	DOG_cone = R_cone + KK * DOG_cone;
-	DOG_rod = R_rod + KK * DOG_rod;
+	//DOG_cone = R_cone + DOG_cone;
+	//DOG_rod = R_rod + DOG_rod;
+
+/*
 	double minvalue, maxvalue;
 	minMaxLoc(DOG_rod, &minvalue, &maxvalue);//in cb4: loc: 3.564
 
@@ -116,6 +113,7 @@ TIMESTAMP(dofilt);
 	//if (maxd<=1)
 	if(0)
 	{
+		CV_Assert(false);
 		float minDOG_rod = minvalue,
 				maxDOG_rod = maxvalue;
 		minMaxLoc(DOG_cone, &minvalue, &maxvalue);
@@ -128,7 +126,8 @@ TIMESTAMP(dofilt);
 	    		(DOG_rod-minDOG_rod)/
 	    		(maxDOG_rod-minDOG_rod);
 	}
-TIMESTAMP(correctDOG);
+*/
+//TIMESTAMP(correctDOG);
 
 	cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
 			table_Lcone2a,table_Lconepownegatives);
@@ -139,20 +138,11 @@ TIMESTAMP(correctDOG);
 	////////////////////////////end infinite loop///////////////////////////////////
 
 
-	//minMaxLoc(L_rod, &minvalue, &maxvalue);
-	//cout << "L_rod min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(L_rod).val[0] << endl;
-	//minMaxLoc(L_cone, &minvalue, &maxvalue);
-	//cout << "L_cone min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(L_cone).val[0] << endl;
-	//minMaxLoc(R_rod, &minvalue, &maxvalue);
-	//cout << "R_rod min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(R_rod).val[0] << endl;
-	//minMaxLoc(R_cone, &minvalue, &maxvalue);
-	//cout << "R_cone min/max/ave: " << minvalue << " : " << maxvalue <<  " : " << mean(R_cone).val[0] << endl;
-
 	if((argc == 3)&&(*(argv[2]) == 'd'))
 	{
 		//namedWindow("origin image", WINDOW_AUTOSIZE);
 		//imshow("origin image", imgin );
-		namedWindow("Output", WINDOW_AUTOSIZE);
+		namedWindow("Output", WINDOW_NORMAL);
 		imshow("Output", origImg);
 		waitKey(0);
 	}
@@ -227,7 +217,6 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     }
 }
 
-
 void cal_R(const Mat& L, Mat& R, float* table)
 {
     CV_Assert(L.depth() == CV_16U);
@@ -279,12 +268,6 @@ void cal_L2R_table(float* table,float Rmax, float n, float alpha, float beta)
 		table[index] = temp;
 	}
 	return;
-}
-
-void correct_dog(const Mat& R, Mat& DOG, float KK)
-{
-	CV_Assert(false);
-	return ;
 }
 
 void cal_Lcone2a_table(float* table, float t)
@@ -414,6 +397,4 @@ void cal_BGR(const Mat& Lcone,\
     }
     return;
 }
-
-
 
