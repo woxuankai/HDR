@@ -6,9 +6,9 @@
 
 %hdr=read_rle_rgbe('smallOffice.hdr');
 %Lin = hdr;
-hdr = imread('smalloffice.tiff');
+hdr = imread('007_ori.bmp');
 %hdr = imread('jersey_solux-3500.tif');
-Lin= single(hdr)/65535;
+Lin= single(hdr)/255;
 %Lin range 0~1
 
 

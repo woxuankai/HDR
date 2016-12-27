@@ -45,12 +45,15 @@ int main(int argc, char* argv[])
 		cout << "./hdr imgfile [d]" << endl;
 		return -1;
 	}
-	Mat origImg = imread(argv[1],CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_COLOR );
+	// read as 8-bit unsigned
+	Mat origImg = imread(argv[1],CV_LOAD_IMAGE_COLOR );
+	//Mat origImg = imread(argv[1],CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_COLOR );
 	if (!origImg.data)
 	{
 		cout << "Unable to load image: " << argv[1] << endl;
 		return -1;
 	}
+	origImg.convertTo(origImg, CV_16U, 255);
 
 	/////////parameters///////////////
 	float alpha = 0.67;
@@ -70,9 +73,8 @@ int main(int argc, char* argv[])
 	Mat DOG_cone = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat DOG_rod = Mat::zeros(origImg.rows, origImg.cols, CV_32FC1);
 	Mat hh = (getGaussianKernel(21,1,CV_32F) - getGaussianKernel(21,4,CV_32F))*KK;
-	hh.at<float>(1,11) += 1;
+	hh.at<float>(1,10) += 1;
 
-	//cout << hh << endl;
 
 	float table_L2R_cone[UINT16_MAX+1] = {0};
 	float table_L2R_rod[UINT16_MAX+1] = {0};
@@ -102,32 +104,6 @@ TIMESTAMP(genR);
 	filter2D(R_rod, DOG_rod, CV_32F, hh);
 TIMESTAMP(dofilt);
 
-	//DOG_cone = R_cone + DOG_cone;
-	//DOG_rod = R_rod + DOG_rod;
-
-/*
-	double minvalue, maxvalue;
-	minMaxLoc(DOG_rod, &minvalue, &maxvalue);//in cb4: loc: 3.564
-
-	float maxd = maxvalue;
-	//if (maxd<=1)
-	if(0)
-	{
-		CV_Assert(false);
-		float minDOG_rod = minvalue,
-				maxDOG_rod = maxvalue;
-		minMaxLoc(DOG_cone, &minvalue, &maxvalue);
-		float minDOG_cone = minvalue,
-				maxDOG_cone = maxvalue;
-	    DOG_cone =
-	    		(DOG_cone-minDOG_cone)/
-				(maxDOG_cone - minDOG_cone);
-	    DOG_rod =
-	    		(DOG_rod-minDOG_rod)/
-	    		(maxDOG_rod-minDOG_rod);
-	}
-*/
-//TIMESTAMP(correctDOG);
 
 	cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
 			table_Lcone2a,table_Lconepownegatives);
