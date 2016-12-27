@@ -46,14 +46,13 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	// read as 8-bit unsigned
-	Mat origImg = imread(argv[1],CV_LOAD_IMAGE_COLOR );
-	//Mat origImg = imread(argv[1],CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_COLOR );
+	Mat origImg = imread(argv[1],IMREAD_COLOR);
+	//Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
 	if (!origImg.data)
 	{
 		cout << "Unable to load image: " << argv[1] << endl;
 		return -1;
 	}
-	origImg.convertTo(origImg, CV_16U, 255);
 
 	/////////parameters///////////////
 	float alpha = 0.67;
@@ -105,10 +104,14 @@ TIMESTAMP(genR);
 TIMESTAMP(dofilt);
 
 
+
+ 
 	cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
 			table_Lcone2a,table_Lconepownegatives);
 	TIMESTAMP(calBGR);
 
+	cout << mean(origImg) << endl;
+ 
 	timestart  = ((double)getTickCount() - timestart ) / getTickFrequency() * 1000;
 	cout << "time cost : "<< timestart << endl;
 	////////////////////////////end infinite loop///////////////////////////////////
@@ -128,7 +131,7 @@ TIMESTAMP(dofilt);
 
 void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
 {
-    CV_Assert(srcBGR.depth() == CV_16U);
+    CV_Assert(srcBGR.depth() == CV_8U);
     CV_Assert(srcBGR.channels() == 3);
     CV_Assert(srcBGR.data != NULL);
 
@@ -142,11 +145,9 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     CV_Assert(Lrod.data != srcBGR.data);
     CV_Assert(Lrod.size == srcBGR.size);
 
-	//Lcone = 0.2127*LinR + 0.7152*LinG + 0.0722*LinB;
-	//Lrod = -0.0602*LinR + 0.5436*LinG + 0.3598*LinB;
     const float bgr2cone[3] = {0.072169, 0.715160, 0.212671};
     const float bgr2rod[3] = {0.359774936, 0.543640649, -0.060205215};
-    //const float bgr2rod[3] = {0.359775, 0.543641, -0.060205};
+
 
     int channels = 3;
     int nRows = srcBGR.rows;
@@ -160,12 +161,12 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
         nRows = 1;
     }
     int i,j;
-    const uint16_t *psrc;
+    const uint8_t *psrc;
     uint16_t *pcone, *prod;
 
     for( i = 0; i < nRows; ++i)
     {
-    	psrc = srcBGR.ptr<uint16_t>(i);
+    	psrc = srcBGR.ptr<uint8_t>(i);
         pcone = Lcone.ptr<uint16_t>(i);
     	prod = Lrod.ptr<uint16_t>(i);
     	float temp;
@@ -175,6 +176,7 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
         	temp = bgr2cone[0]*psrc[srcj]\
         			+ bgr2cone[1]*psrc[srcj+1]\
 					+ bgr2cone[2]*psrc[srcj+2] + 0.5;
+		temp = temp*255;
         	if(temp < 1)
         		temp = 1;
         	if(temp > UINT16_MAX)
@@ -184,6 +186,7 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
         	temp = bgr2rod[0]*psrc[srcj]\
         			+ bgr2rod[1]*psrc[srcj+1]\
 					+ bgr2rod[2]*psrc[srcj+2] + 0.5;
+		temp = temp*255;
         	if(temp < 1)
         		temp = 1;
         	if(temp > UINT16_MAX)
@@ -281,7 +284,7 @@ void cal_BGR(const Mat& Lcone,\
 		float *table_Lcone2a,\
 		float *table_Lconepownegatives)
 {
-    CV_Assert(BGR.depth() == CV_16U);
+    CV_Assert(BGR.depth() == CV_8U);
     CV_Assert(BGR.channels() == 3);
     CV_Assert(BGR.data != NULL);
     CV_Assert(Lcone.depth() == CV_16U);
@@ -317,14 +320,14 @@ void cal_BGR(const Mat& Lcone,\
         nRows = 1;
     }
     int i,j;
-    uint16_t *pBGR;
+    uint8_t *pBGR;
     const uint16_t *pLcone;
     const float *pDOGcone, *pDOGrod;
     float tempbgr;
 
     for( i = 0; i < nRows; ++i)
     {
-    	pBGR = BGR.ptr<uint16_t>(i);
+    	pBGR = BGR.ptr<uint8_t>(i);
         pLcone = Lcone.ptr<uint16_t>(i);
     	pDOGcone = DOGcone.ptr<float>(i);
     	pDOGrod = DOGrod.ptr<float>(i);
@@ -348,8 +351,8 @@ void cal_BGR(const Mat& Lcone,\
 					Lout + 0.5;
         	if(tempbgr < 0)
         		tempbgr = 0;
-        	if(tempbgr > UINT16_MAX)
-        		tempbgr = UINT16_MAX;
+        	if(tempbgr > UINT8_MAX)
+        		tempbgr = UINT8_MAX;
         	pBGR[BGRj] = tempbgr;
 
         	tempbgr = pBGR[BGRj+1]*\
@@ -366,8 +369,8 @@ void cal_BGR(const Mat& Lcone,\
 					Lout + 0.5;
         	if(tempbgr < 0)
         		tempbgr = 0;
-        	if(tempbgr > UINT16_MAX)
-        		tempbgr = UINT16_MAX;
+        	if(tempbgr > UINT8_MAX)
+        		tempbgr = UINT8_MAX;
         	pBGR[BGRj+2] = tempbgr;
         }
     }
