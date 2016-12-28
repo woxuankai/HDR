@@ -100,8 +100,6 @@ void do_hdr(Mat &origImg)
   cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
 	  table_Lcone2a,table_Lconepownegatives);
   TIMESTAMP(calBGR);
-
-  cout << mean(origImg) << endl;
  
   timestart  = ((double)getTickCount() - timestart ) / getTickFrequency() * 1000;
   cout << "time cost : "<< timestart << endl;
@@ -114,36 +112,57 @@ void do_hdr(Mat &origImg)
 int main(int argc, char* argv[])
 {
 
-
+  int ifvideo = 0;
+  VideoCapture cap(0);
+  Mat origImg;
   if(argc < 2)
     {
-      cout << "usage:" << endl;
-      cout << "./hdr imgfile [d]" << endl;
-      return -1;
+      ifvideo = 1;
+      cap.set(CAP_PROP_FRAME_WIDTH,640);
+      cap.set(CAP_PROP_FRAME_HEIGHT,480);
     }
-  // read as 8-bit unsigned
-  Mat origImg = imread(argv[1],IMREAD_COLOR);
-  //Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
-  if (!origImg.data)
+  else
     {
-      cout << "Unable to load image: " << argv[1] << endl;
-      return -1;
+      // read as 8-bit unsigned
+      origImg = imread(argv[1],IMREAD_COLOR);
+      //Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
+      if (!origImg.data)
+	{
+	  cout << "Unable to load image: " << argv[1] << endl;
+	  return -1;
+	}
     }
 
-  
   init_hdr();
-  CV_Assert(origImg.cols == IMG_WIDTH);
-  CV_Assert(origImg.rows == IMG_HEIGHT);
-  do_hdr(origImg);
 
-
-  if((argc == 3)&&(*(argv[2]) == 'd'))
+  while(1)
     {
-      //namedWindow("origin image", WINDOW_AUTOSIZE);
-      //imshow("origin image", imgin );
-      namedWindow("Output", WINDOW_NORMAL);
-      imshow("Output", origImg);
-      waitKey(0);
+      if(ifvideo)
+	{
+	  cap >> origImg;
+	}
+      CV_Assert(origImg.cols == IMG_WIDTH);
+      CV_Assert(origImg.rows == IMG_HEIGHT);
+      do_hdr(origImg);
+
+      if(ifvideo)
+	{
+	  imshow("output",origImg);
+	  if(waitKey(1) >= 0)
+	    break;
+	}
+      else
+	{
+	  if((argc == 3)&&(*(argv[2]) == 'd'))
+	    {
+	      //namedWindow("origin image", WINDOW_AUTOSIZE);
+	      //imshow("origin image", imgin );
+	      namedWindow("Output", WINDOW_NORMAL);
+	      imshow("Output", origImg);
+	      waitKey(0);
+      	    }
+	  break;
+	}
     }
   return 0;
 }
