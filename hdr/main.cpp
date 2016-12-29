@@ -2,8 +2,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
-#include <stdint.h>
-#include <limits.h>
+#include <cstdint>
 #include <semaphore.h>
 #include <pthread.h>
 using namespace std;
