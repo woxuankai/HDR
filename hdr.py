@@ -5,19 +5,11 @@ import sys
 import cv2
 import numpy as np
 
-alpha = 0.67;
-beta_cone = 4;
-beta_rod = 2;
-n=0.8;
-R_max=2.5;
-KK=2.5;
-t=0.1;
-s=0.8;
 
-# BGR2XYZ=np.array([[0.1604, 0.3239, 0.5141],
-#                      [0.0641, 0.6702, 0.2651],
-#                      [0.8444, 0.1228, 0.0241]],dtype='float32')
-# XYZ2L_cone = np.array([0, 1, 0],dtype='float32')
+
+
+alpha = 0.67;
+beta_cone = 4;VideoCapture([0, 1, 0],dtype='float32')
 # XYZ2L_rod = np.array([-0.702, 1.039, 0.433],dtype='float32')
 # BGR2L_cone = BGR2XYZ.dot(XYZ2L_cone)
 # BGR2L_rod = BGR2XYZ.dot(XYZ2L_rod)
