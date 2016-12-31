@@ -140,6 +140,11 @@ int main(int argc, char* argv[])
 	{
 	  cap >> origImg;
 	}
+      else
+	{
+	  origImg = imread(argv[1],IMREAD_COLOR);
+	}
+      
       CV_Assert(origImg.cols == IMG_WIDTH);
       CV_Assert(origImg.rows == IMG_HEIGHT);
       do_hdr(origImg);
@@ -150,20 +155,22 @@ int main(int argc, char* argv[])
 	  if(waitKey(1) >= 0)
 	    break;
 	}
-      else
+      else if((argc == 3)&&(*(argv[2]) == 'd'))
 	{
-	  if((argc == 3)&&(*(argv[2]) == 'd'))
-	    {
-	      //namedWindow("origin image", WINDOW_AUTOSIZE);
-	      //imshow("origin image", imgin );
-	      namedWindow("Output", WINDOW_NORMAL);
-	      imshow("Output", origImg);
-	      waitKey(0);
-      	    }
+	  //namedWindow("origin image", WINDOW_AUTOSIZE);
+	  //imshow("origin image", imgin );
+	  namedWindow("Output", WINDOW_NORMAL);
+	  imshow("Output", origImg);
+	  waitKey(0);
 	  break;
 	}
+      else
+	{
+	  static int loadimagecount=0;
+	  if(loadimagecount++ >= 100)
+	    break;
+	}
     }
-
   TIMER_STAMP_P(HDR,LL);
   TIMER_STAMP_P(HDR,L2R);
   TIMER_STAMP_P(HDR,FILT);
