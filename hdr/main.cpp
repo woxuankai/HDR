@@ -4,8 +4,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-//#include "timecal.h"
 
+//#define HDR_USE_ASSERT
 #define HDR_USE_TBB
 
 using namespace std;
@@ -224,6 +224,7 @@ void do_hdr(Mat &origImg)
 
 void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
 {
+#ifdef HDR_USE_ASSERT
   CV_Assert(srcBGR.depth() == CV_8U);
   CV_Assert(srcBGR.channels() == 3);
   CV_Assert(srcBGR.data != NULL);
@@ -237,7 +238,8 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
   CV_Assert(Lrod.channels() == 1);
   CV_Assert(Lrod.data != srcBGR.data);
   CV_Assert(Lrod.size == srcBGR.size);
-
+#endif
+  
   const float bgr2cone[3] = {0.072169, 0.715160, 0.212671};
   const float bgr2rod[3] = {0.359774936, 0.543640649, -0.060205215};
 
@@ -299,6 +301,7 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
 
 void cal_R(const Mat& L, Mat& R, float* table)
 {
+#ifdef HDR_USE_ASSERT
   CV_Assert(L.depth() == CV_16U);
   CV_Assert(L.channels() == 1);
   CV_Assert(L.data != NULL);
@@ -307,7 +310,8 @@ void cal_R(const Mat& L, Mat& R, float* table)
   CV_Assert(R.data != L.data);
   CV_Assert(R.size == L.size);
   CV_Assert(table != NULL);
-
+#endif
+  
   int nRows = L.rows;
   int nCols = L.cols;
 
@@ -385,6 +389,7 @@ void cal_BGR(const Mat& Lcone,\
 	     float *table_Lcone2a,\
 	     float *table_Lconepownegatives)
 {
+#ifdef HDR_USE_ASSERT
   CV_Assert(BGR.depth() == CV_8U);
   CV_Assert(BGR.channels() == 3);
   CV_Assert(BGR.data != NULL);
@@ -402,7 +407,8 @@ void cal_BGR(const Mat& Lcone,\
   CV_Assert(DOGrod.size == BGR.size);
   CV_Assert(table_Lcone2a != NULL);
   CV_Assert(table_Lconepownegatives != NULL);
-
+#endif
+  
   double minvalue,maxvalue;
   minMaxLoc(Lcone, &minvalue, &maxvalue);
   float mina;
