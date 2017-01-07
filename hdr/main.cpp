@@ -6,7 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 //#define HDR_USE_ASSERT
-#define HDR_USE_TBB
+#define HDR_THREAD_NUM 1
 
 using namespace std;
 using namespace cv;
@@ -25,8 +25,7 @@ void cal_BGR(const Mat& Lcone,\
 	     float *table_Lconepownegatives);
 
 
-
-#define TIMER_STAMP_I(TIMER, ID)		\
+#define TIMER_STAMP_I(TIMER, ID)			\
   static double __##TIMER##_total_##ID = 0;		\
   static double __##TIMER##_count_##ID = 0;			
 
@@ -68,6 +67,7 @@ void cal_BGR(const Mat& Lcone,\
     TIMER_STAMP_P(TIMER, timer);		\
   }
 
+
 float alpha = 0.67;
 float beta_cone = 4;
 float beta_rod = 2;
@@ -98,14 +98,20 @@ float table_Lconepownegatives[UINT16_MAX+1] = {0};
 
 
 void init_hdr();
-void do_hdr(Mat &origImg);
+
+void do_hdr(Mat &origImg
+#ifdef HDR_THREAD_NUM
+	    ,int startline, int lines
+#endif
+	    );
 
 
-TIMER_INIT(HDR);
-TIMER_STAMP_I(HDR,LL);
-TIMER_STAMP_I(HDR,L2R);
-TIMER_STAMP_I(HDR,FILT);
-TIMER_STAMP_I(HDR,BGR);
+
+TIMER_INIT(HDR)
+//TIMER_STAMP_I(HDR,LL)
+//TIMER_STAMP_I(HDR,L2R)
+//TIMER_STAMP_I(HDR,FILT)
+//TIMER_STAMP_I(HDR,BGR)
 
 
 
@@ -114,19 +120,16 @@ int main(int argc, char* argv[])
   int ifvideo = 0;
   VideoCapture cap(0);
   Mat origImg;
-  if(argc < 2)
-    {
+  if(argc < 2){
       ifvideo = 1;
       cap.set(CAP_PROP_FRAME_WIDTH,640);
       cap.set(CAP_PROP_FRAME_HEIGHT,480);
     }
-  else
-    {
+  else{
       // read as 8-bit unsigned
       origImg = imread(argv[1],IMREAD_COLOR);
       //Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
-      if (!origImg.data)
-	{
+      if (!origImg.data){
 	  cout << "Unable to load image: " << argv[1] << endl;
 	  return -1;
 	}
@@ -134,29 +137,33 @@ int main(int argc, char* argv[])
 
   init_hdr();
 
-  while(1)
-    {
-      if(ifvideo)
-	{
+  while(1){
+      if(ifvideo){
 	  cap >> origImg;
 	}
-      else
-	{
+      else{
 	  origImg = imread(argv[1],IMREAD_COLOR);
 	}
-      
+
+      #ifdef HDR_USE_ASSERT
       CV_Assert(origImg.cols == IMG_WIDTH);
       CV_Assert(origImg.rows == IMG_HEIGHT);
-      do_hdr(origImg);
+      #endif
+      TIMER_START(HDR)
+      #ifdef HDR_THREAD_NUM
+      do_hdr(origImg,0,IMG_HEIGHT/2);
+      #else
+      do_hdr(origImg)
+      #endif
+      TIMER_STOP(HDR)
 
-      if(ifvideo)
-	{
+
+      if(ifvideo){
 	  imshow("output",origImg);
 	  if(waitKey(1) >= 0)
 	    break;
 	}
-      else if((argc == 3)&&(*(argv[2]) == 'd'))
-	{
+      else if((argc == 3)&&(*(argv[2]) == 'd')){
 	  //namedWindow("origin image", WINDOW_AUTOSIZE);
 	  //imshow("origin image", imgin );
 	  namedWindow("Output", WINDOW_NORMAL);
@@ -164,26 +171,24 @@ int main(int argc, char* argv[])
 	  waitKey(0);
 	  break;
 	}
-      else
-	{
+      else{
 	  static int loadimagecount=0;
-	  if(loadimagecount++ >= 100)
+	  if(loadimagecount++ >= 99)
 	    break;
 	}
     }
-  TIMER_STAMP_P(HDR,LL);
-  TIMER_STAMP_P(HDR,L2R);
-  TIMER_STAMP_P(HDR,FILT);
-  TIMER_STAMP_P(HDR,BGR);
-  TIMER_PRINT(HDR);
+  //  TIMER_STAMP_P(HDR,LL);
+  //  TIMER_STAMP_P(HDR,L2R);
+  //  TIMER_STAMP_P(HDR,FILT);
+  //  TIMER_STAMP_P(HDR,BGR);
+  TIMER_PRINT(HDR)
   return 0;
 }
 
 
 
 
-void init_hdr()
-{
+void init_hdr(){
   cal_L2R_table(table_L2R_cone, R_max, n, alpha, beta_cone);
   cal_L2R_table(table_L2R_rod, R_max, n, alpha, beta_rod);
   cal_Lcone2a_table(table_Lcone2a, t);
@@ -194,27 +199,44 @@ void init_hdr()
   return;
 }
 
-void do_hdr(Mat &origImg)
+void do_hdr(
+#ifdef HDR_THREAD_NUM
+	    Mat &__origImg,int startline, int lines
+#else
+	    Mat &origImg
+#endif
+	    )
 {
-  TIMER_START(HDR);
   
-  cal_Lcone_Lrod(origImg, L_cone, L_rod);
-  TIMER_STAMP(HDR,LL);
+#ifdef HDR_THREAD_NUM
+#define RECT_ROI Rect(0, startline, IMG_WIDTH, lines)
+#define CREATE_ROI(MATNAME)			\
+  Mat __##MATNAME ( MATNAME, RECT_ROI);		\
+  Mat MATNAME(__##MATNAME)
+  
+  //CREATE_ROI(origImg);
+  Mat origImg(__origImg, RECT_ROI);
+  CREATE_ROI(L_cone);
+  CREATE_ROI(L_rod);
+  CREATE_ROI(R_cone);
+  CREATE_ROI(R_rod);
+  CREATE_ROI(DOG_cone);
+  CREATE_ROI(DOG_rod);
+#undef CREATE_ROI
+#undef RECT_ROI
+#endif
 
+  cal_Lcone_Lrod(origImg, L_cone, L_rod);
+  //TIMER_STAMP(HDR,LL);
   cal_R(L_cone, R_cone, table_L2R_cone);
   cal_R(L_rod, R_rod, table_L2R_rod);
-  TIMER_STAMP(HDR,L2R);
-
+  //TIMER_STAMP(HDR,L2R);
   filter2D(R_cone, DOG_cone, CV_32F, hh);
   filter2D(R_rod, DOG_rod, CV_32F, hh);
-  TIMER_STAMP(HDR,FILT);
- 
+  //TIMER_STAMP(HDR,FILT);
   cal_BGR(L_cone, DOG_cone, DOG_rod, origImg,\
 	  table_Lcone2a,table_Lconepownegatives);
-  TIMER_STAMP(HDR,BGR);
-
-  TIMER_STOP(HDR);
-
+  //TIMER_STAMP(HDR,BGR);
   return;
 }
 
@@ -248,7 +270,6 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
   int nRows = srcBGR.rows;
   int nCols = srcBGR.cols;
 
-#ifndef HDR_USE_TBB
   if ((srcBGR.isContinuous())&&\
       (Lcone.isContinuous())&&\
       (Lrod.isContinuous()))
@@ -258,9 +279,6 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
     }
 
   for(int i = 0; i < nRows; ++i)
-#else
-    tbb::parallel_for(0, nRows, [&](int i)
-#endif
     {
       const uint8_t *psrc;
       uint16_t *pcone, *prod;
@@ -292,11 +310,7 @@ void cal_Lcone_Lrod(const Mat& srcBGR, Mat& Lcone, Mat& Lrod)
 	    temp = UINT16_MAX;
 	  prod[j] = temp;
         }
-#ifdef HDR_USE_TBB
-    });
-#else
     }
-#endif
 }
 
 void cal_R(const Mat& L, Mat& R, float* table)
@@ -418,7 +432,6 @@ void cal_BGR(const Mat& Lcone,\
   int nRows = BGR.rows;
   int nCols = BGR.cols;
 
-#ifndef HDR_USE_TBB
   if ((BGR.isContinuous())&&\
       (Lcone.isContinuous())&&\
       (DOGcone.isContinuous())&&\
@@ -429,9 +442,6 @@ void cal_BGR(const Mat& Lcone,\
     }
 
   for(int i = 0; i < nRows; ++i)
-#else
-  tbb::parallel_for(0, nRows,[&](int i)
-#endif
     {
       uint8_t *pBGR;
       const uint16_t *pLcone;
@@ -483,11 +493,7 @@ void cal_BGR(const Mat& Lcone,\
 	    tempbgr = UINT8_MAX;
 	  pBGR[BGRj+2] = tempbgr;
 	}
-#ifdef HDR_USE_TBB
-    });
-#else
     }
-#endif
   return;
 }
 
