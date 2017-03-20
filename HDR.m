@@ -4,11 +4,11 @@
 % load matlab
 % Lin=double(imread('43.bmp'))/255;
 
-%hdr=read_rle_rgbe('smallOffice.hdr');
-%Lin = hdr;
-hdr = imread('007_ori.bmp');
+hdr=read_rle_rgbe('007.hdr');
+Lin = hdr;
+%hdr = imread('007_ori.bmp');
 %hdr = imread('jersey_solux-3500.tif');
-Lin= single(hdr)/255;
+%Lin= single(hdr)/255;
 %Lin range 0~1
 
 
@@ -58,6 +58,7 @@ R_rod=Rmax*(Lrod.^n)./(Lrod.^n+sigma_rod.^n+eps);
 %R_cone : 0 ~ 2.5
 %R_rod  : 0 ~ 2.5
 
+%hh=fspecial('gaussian',[5 5],0.25)-fspecial('gaussian',[5 5],1);
 hh=fspecial('gaussian',[21 21],1)-fspecial('gaussian',[21 21],4);
 DOG_cone= imfilter(R_cone,hh,'conv','same','replicate');
 DOG_rod = imfilter(R_rod,hh,'conv','same','replicate');
@@ -88,6 +89,6 @@ RGB(:,:,1)=((Lin(:,:,1)./(Lcone+eps)).^s).*Lout;
 RGB(:,:,2)=((Lin(:,:,2)./(Lcone+eps)).^s).*Lout;
 RGB(:,:,3)=((Lin(:,:,3)./(Lcone+eps)).^s).*Lout;
 
-
-%imshow(RGB);
+figure(1)
+imshow(RGB);
 %rgb1 = RGB;
