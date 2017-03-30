@@ -8,4 +8,4 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_library( hdr hdr.cxx )
 add_executable( dohdr main.cpp )
-target_link_libraries( dohdr ${OpenCV_LIBS} hdr pthread tbb)
+target_link_libraries( dohdr ${OpenCV_LIBS} hdr)

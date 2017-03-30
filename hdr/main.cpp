@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdint>
-#include <tbb/tbb.h>
+#include <thread>
+//#include <queue> we don't need a queue, as a queue of length=1 is enough
+#include <mutex>
 #include <opencv2/opencv.hpp>
 #include "hdr.hxx"
 
@@ -51,28 +53,24 @@ using namespace cv;
   }
 
 TIMER_INIT(HDR)
-//TIMER_STAMP_I(HDR,LL)
-//TIMER_STAMP_I(HDR,L2R)
-//TIMER_STAMP_I(HDR,FILT)
-//TIMER_STAMP_I(HDR,BGR)
+
 
 
 
 int main(int argc, char* argv[])
 {
+  Size_<int> imgsize(640,480);
   int ifvideo = 0;
   VideoCapture cap(0);
   Mat origImg;
+  // Mat outImg = cv::Mat::zeros(imgsize, CV_8UC3);
   if(argc < 2){
     ifvideo = 1;
     cap.set(CV_CAP_PROP_FRAME_WIDTH,640);
     // cv::CAP_PROP_FRAME_WIDTH won't work in opencv 2.x version
     cap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
-    int actualwidth, actualheight;
-    actualwidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-    actualheight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-    CV_Assert(actualwidth == 640);
-    CV_Assert(actualheight == 480);
+    cap >> origImg;
+    CV_Assert(origImg.size() == imgsize);
   }
   else{
     // read as 8-bit unsigned
@@ -82,19 +80,21 @@ int main(int argc, char* argv[])
       cout << "Unable to load image: " << argv[1] << endl;
       return -1;
     }
+    origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
   }
 
-  Size_<int> imgsize(640,480);
   hdr process_hdr(imgsize);
-  
+
+  //static const int num_threads = 4;
+  //std::thread t[num_threads];
+  //for (int i=0; i<num_threads; i++){
+  //  t[i]=std::thread(
+
   while(1){
+    // if video, capture one frame
     if(ifvideo){
       cap >> origImg;
     }
-    else{
-      origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
-    }
-    CV_Assert(origImg.size() == imgsize);
     TIMER_START(HDR)
     process_hdr.process(origImg,origImg);
     TIMER_STOP(HDR)
@@ -104,8 +104,6 @@ int main(int argc, char* argv[])
       if(waitKey(1) >= 0)
         break;
     }else if((argc == 3)&&(*(argv[2]) == 'd')){
-      //namedWindow("origin image", WINDOW_AUTOSIZE);
-      //imshow("origin image", imgin );
       namedWindow("Output", WINDOW_NORMAL);
       imshow("Output", origImg);
       waitKey(0);
