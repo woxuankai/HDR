@@ -7,7 +7,7 @@
 blocking_queue<cv::Mat>::size_type critical_queue_size = 30;
 
 void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
-    const std::string windowname){
+    std::string windowname){
   namedWindow(windowname, cv::WINDOW_NORMAL);
   cv::Mat image;
   while(!exitflag){

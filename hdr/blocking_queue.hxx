@@ -1,4 +1,4 @@
-#ifndef __MY_BLOCKING_QUEU
+#ifndef __MY_BLOCKING_QUEUE
 #define __MY_BLOCKING_QUEUE
 
 #include <queue>

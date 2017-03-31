@@ -1,120 +1,88 @@
 #include <iostream>
 #include <cstdint>
 #include <thread>
-//#include <queue> we don't need a queue, as a queue of length=1 is enough
-#include <mutex>
+#include <deque>
 #include <opencv2/opencv.hpp>
 #include "hdr.hxx"
+#include "blocking_queue.hxx"
+#include "thread_functions.hxx"
 
-using namespace std;
-using namespace cv;
+blocking_queue<cv::Mat> q_orig();
+blocking_queue<cv::Mat> q_disp();
 
-
-#define TIMER_STAMP_I(TIMER, ID)			\
-  static double __##TIMER##_total_##ID = 0;		\
-  static double __##TIMER##_count_##ID = 0;			
-
-#define TIMER_INIT(TIMER) TIMER_STAMP_I(TIMER, timer)
-
-#define TIMER_START(TIMER)				\
-  double __##TIMER##_start = (double)getTickCount();	\
-  double __##TIMER##_last = __##TIMER##_start;	
-  
-#define TIMER_STAMP(TIMER, ID)					\
-  {								\
-    double temptime = (double)getTickCount();			\
-    __##TIMER##_total_##ID += temptime - __##TIMER##_last;	\
-    __##TIMER##_count_##ID += 1;				\
-    __##TIMER##_last = temptime;				\
-  }
-
-
-#define TIMER_STOP(TIMER)					\
-  {								\
-    double temptime = (double)getTickCount();			\
-    __##TIMER##_total_timer += temptime - __##TIMER##_start;	\
-    __##TIMER##_count_timer += 1;				\
-  }
-
-#define TIMER_STAMP_P(TIMER, ID)				\
-  {								\
-    cout << #TIMER #ID "("					\
-	 <<__##TIMER##_count_##ID				\
-	 <<"times) : "						\
-	 << __##TIMER##_total_##ID/__##TIMER##_count_##ID	\
-      /getTickFrequency()*1000					\
-	 << endl;						\
-  }
-
-
-#define TIMER_PRINT(TIMER)			\
-  {						\
-    TIMER_STAMP_P(TIMER, timer);		\
-  }
-
-TIMER_INIT(HDR)
-
-
-
+void fun(bool &number, blocking_queue<cv::Mat> &q){
+  std::cout << "papa :" << number << std::endl;
+  return;
+}
 
 int main(int argc, char* argv[])
 {
-  Size_<int> imgsize(640,480);
-  int ifvideo = 0;
-  VideoCapture cap(0);
-  Mat origImg;
-  // Mat outImg = cv::Mat::zeros(imgsize, CV_8UC3);
+  // init threads
+  bool exitflag=false;
+  const int num_process_threads=4;
+  //std::deque<std::thread> threads;
+  // init disp thread
+  //threads.push_back(std::thread(thread_display, \
+      exitflag, q_disp, std::string("output")));
+  std::thread onethread(fun, std::ref(exitflag),std::ref(q_orig));
+//  std::thread onethread(thread_display,std::ref(exitflag),std::ref(q_disp),std::string("output"));
+  std::this_thread::sleep_for (std::chrono::seconds(1));
+/*  // init work thread
+  std::thread threadswork[num_process_threads];
+  for (int i=0; i<num_process_threads; i++)
+  //  threads.push_back(std::thread(thread_process, \
+        exitflag, q_orig, q_disp));
+    threadswork[i] = std::thread(thread_process, exitflag, q_orig, q_disp);
+  // init capture
+  bool ifvideo;
+  std::string path;
   if(argc < 2){
-    ifvideo = 1;
-    cap.set(CV_CAP_PROP_FRAME_WIDTH,640);
+    ifvideo = true;
+    path = "/dev/video0";
+  }else{
+    ifvideo = false;
+    path = std::string(argv[1]);
+  }
+  cv::Size imgsize(640,480);
+  cv::Mat origImg;
+  std::thread threadvideo;
+  if(ifvideo){
+    cv::VideoCapture cap(path);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, imgsize.width);
     // cv::CAP_PROP_FRAME_WIDTH won't work in opencv 2.x version
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, imgsize.height);
     cap >> origImg;
     CV_Assert(origImg.size() == imgsize);
-  }
-  else{
+    //threads.push_back(std::thread(thread_capture, \
+        exitflag, q_orig, cap));
+    threadvideo = std::thread(thread_caputre, exitflag, q_orig, cap);
+  }else{
     // read as 8-bit unsigned
-    origImg = imread(argv[1],IMREAD_COLOR);
+    origImg = imread(argv[1],cv::IMREAD_COLOR);
     //Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
     if (!origImg.data){
-      cout << "Unable to load image: " << argv[1] << endl;
+      std::cout << "Unable to load image: " << argv[1] << std::endl;
       return -1;
     }
     origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
-  }
+    //threads.push_back(std::thread(thread_capture_img, \
+        exitflag, q_orig, origImg));
+    threadvideo = std::thread(thread_capture_img,exitflag,q_orig,origImg);
+  }  
+  // what to do during wait?
+  // 1.wait 100ms
+  // 2.check if there is any thread joinable, if true, set exit flag
+  // 3.check if exit flag is set, if set, try join threads, else go to 1
+  //while(
 
-  hdr process_hdr(imgsize);
+// how to join a thread?
+// 1.wait 33ms, test if joinable;
+// 2.if not joinable, insert black image to a queue, goto 1; else join it
 
-  //static const int num_threads = 4;
-  //std::thread t[num_threads];
-  //for (int i=0; i<num_threads; i++){
-  //  t[i]=std::thread(
-
-  while(1){
-    // if video, capture one frame
-    if(ifvideo){
-      cap >> origImg;
-    }
-    TIMER_START(HDR)
-    process_hdr.process(origImg,origImg);
-    TIMER_STOP(HDR)
-
-    if(ifvideo){
-      imshow("output",origImg);
-      if(waitKey(1) >= 0)
-        break;
-    }else if((argc == 3)&&(*(argv[2]) == 'd')){
-      namedWindow("Output", WINDOW_NORMAL);
-      imshow("Output", origImg);
-      waitKey(0);
-      break;
-    }else{
-      static int loadimagecount=0;
-      if(loadimagecount++ >= 99)
-      break;
-    }
-  }
-  TIMER_PRINT(HDR)
+  //for (auto& th: threads) th.join();
+*/
   return 0;
 }
+
+  //Mat imageblack = cv::Mat::zeros(imgsize, CV_8UC3);
 

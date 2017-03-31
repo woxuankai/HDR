@@ -8,6 +8,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_library( hdr hdr.cxx )
 add_library( blocking_queue blocking_queue.cxx)
+add_library( thread_functions thread_functions.cxx)
 
 add_executable( dohdr main.cpp )
-target_link_libraries( dohdr ${OpenCV_LIBS} hdr blocking_queue)
+target_link_libraries( dohdr ${OpenCV_LIBS} pthread hdr blocking_queue thread_functions)

@@ -10,7 +10,7 @@ extern blocking_queue<cv::Mat>::size_type critical_queue_size;
 
 // display images from queue
 void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
-    const std::string windowname);
+    std::string windowname);
 
 void thread_process(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
     blocking_queue<cv::Mat> &image_queue_out);
