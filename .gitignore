@@ -13,7 +13,7 @@ __pycache__
 .metadata
 
 #exe
-hdr
+build
 
 # Compiled Object files
 *.slo
