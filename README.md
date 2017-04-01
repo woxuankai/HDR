@@ -102,18 +102,24 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 
 ## 测试		
 
-	1. 下载实例程序	
-	
+1. 下载实例程序
+
 	```shell
-	git clone # to be continue
+	git clone https://github.com/woxuankai/HDR.git
 	```
-	
-	2. 编译
-	
-	3. 运行					
-					
-					
-					
-					
-					
-					
+
+2. 编译
+
+	```shell
+	cd hdr
+	mkdir build
+	cd build
+	cmake -DCMAKE_BUILD_TYPE=Release ..
+	make -j4
+	```
+
+3. 运行		
+
+	```shell
+	./dohdr #  运行之前插上摄像头，且须在图形界面上运行	
+	```
