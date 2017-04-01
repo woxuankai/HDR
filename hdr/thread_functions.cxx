@@ -17,6 +17,14 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
       exitflag = true;
       break;
     }
+    static double alpha = 0.8;
+    static double timeperframe=1/30.0;
+    static double thistime=cv::getTickCount()/(double)cv::getTickFrequency();
+    static double lasttime=thistime - timeperframe;
+    thistime=cv::getTickCount()/(double)cv::getTickFrequency();
+    timeperframe = timeperframe*alpha + (thistime-lasttime)*(1-alpha);
+    lasttime=thistime;
+    std::cout << "\rfps: " << 1/timeperframe << std::endl;
   }
   std::cout << "display thread exiting..." << \
       "(thread id: " << std::this_thread::get_id() << ")" << std::endl;
