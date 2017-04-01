@@ -12,7 +12,7 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
   cv::Mat image;
   while(!exitflag){
     image_queue_in.get(image);
-    imshow("Output", image);
+    imshow(windowname, image);
     if(cv::waitKey(1) >= 0){ //key pressed, exit
       exitflag = true;
       break;

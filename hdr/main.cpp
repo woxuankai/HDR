@@ -29,17 +29,10 @@ int main(int argc, char* argv[])
   // init disp thread
   threads.push_back(std::thread(thread_display, \
       exitflag_ref, q_disp_ref, std::string("output")));
-  //std::thread onethread(fun, std::ref(q_orig));
-  //auto hello = std::reference_wrapper<blocking_queue<cv::Mat>>(q_orig_ref);
-  //auto hello = std::reference_wrapper<bool>( exitflag_ref);
-  //std::thread onethread(thread_display, exitflag_ref, q_disp_ref, std::string("output"));
-  //std::this_thread::sleep_for (std::chrono::seconds(1));
-/*  // init work thread
-  std::thread threadswork[num_process_threads];
+  // init work thread
   for (int i=0; i<num_process_threads; i++)
-  //  threads.push_back(std::thread(thread_process, \
-        exitflag, q_orig, q_disp));
-    threadswork[i] = std::thread(thread_process, exitflag, q_orig, q_disp);
+    threads.push_back(std::thread(thread_process, \
+        exitflag_ref, q_orig_ref, q_disp_ref));
   // init capture
   bool ifvideo;
   std::string path;
@@ -54,15 +47,14 @@ int main(int argc, char* argv[])
   cv::Mat origImg;
   std::thread threadvideo;
   if(ifvideo){
-    cv::VideoCapture cap(path);
+    cv::VideoCapture cap(0);
     cap.set(CV_CAP_PROP_FRAME_WIDTH, imgsize.width);
     // cv::CAP_PROP_FRAME_WIDTH won't work in opencv 2.x version
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, imgsize.height);
     cap >> origImg;
     CV_Assert(origImg.size() == imgsize);
-    //threads.push_back(std::thread(thread_capture, \
-        exitflag, q_orig, cap));
-    threadvideo = std::thread(thread_caputre, exitflag, q_orig, cap);
+    threads.push_back(std::thread(thread_capture, \
+        exitflag_ref, q_orig_ref, std::ref(cap)));
   }else{
     // read as 8-bit unsigned
     origImg = imread(argv[1],cv::IMREAD_COLOR);
@@ -72,10 +64,10 @@ int main(int argc, char* argv[])
       return -1;
     }
     origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
-    //threads.push_back(std::thread(thread_capture_img, \
-        exitflag, q_orig, origImg));
-    threadvideo = std::thread(thread_capture_img,exitflag,q_orig,origImg);
-  }  
+    threads.push_back(std::thread(thread_capture_img, \
+        exitflag_ref, q_orig_ref, std::ref(origImg)));
+  }
+  std::this_thread::sleep_for (std::chrono::seconds(60)); 
   // what to do during wait?
   // 1.wait 100ms
   // 2.check if there is any thread joinable, if true, set exit flag
@@ -87,7 +79,6 @@ int main(int argc, char* argv[])
 // 2.if not joinable, insert black image to a queue, goto 1; else join it
 
   //for (auto& th: threads) th.join();
-*/
   return 0;
 }
 
