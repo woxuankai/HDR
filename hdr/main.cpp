@@ -2,31 +2,38 @@
 #include <cstdint>
 #include <thread>
 #include <deque>
+#include <functional>
 #include <opencv2/opencv.hpp>
 #include "hdr.hxx"
 #include "blocking_queue.hxx"
 #include "thread_functions.hxx"
 
-blocking_queue<cv::Mat> q_orig();
-blocking_queue<cv::Mat> q_disp();
 
-void fun(bool &number, blocking_queue<cv::Mat> &q){
-  std::cout << "papa :" << number << std::endl;
+void fun(blocking_queue<cv::Mat> &q){
+  std::cout << "papa" << std::endl;
   return;
 }
+
 
 int main(int argc, char* argv[])
 {
   // init threads
   bool exitflag=false;
-  const int num_process_threads=4;
-  //std::deque<std::thread> threads;
+  blocking_queue<cv::Mat> q_orig;
+  blocking_queue<cv::Mat> q_disp;
+  auto exitflag_ref = std::ref<bool>(exitflag);
+  auto q_orig_ref = std::ref(q_orig);
+  auto q_disp_ref = std::ref(q_disp);
+  const int num_process_threads = 4;
+  std::deque<std::thread> threads;
   // init disp thread
-  //threads.push_back(std::thread(thread_display, \
-      exitflag, q_disp, std::string("output")));
-  std::thread onethread(fun, std::ref(exitflag),std::ref(q_orig));
-//  std::thread onethread(thread_display,std::ref(exitflag),std::ref(q_disp),std::string("output"));
-  std::this_thread::sleep_for (std::chrono::seconds(1));
+  threads.push_back(std::thread(thread_display, \
+      exitflag_ref, q_disp_ref, std::string("output")));
+  //std::thread onethread(fun, std::ref(q_orig));
+  //auto hello = std::reference_wrapper<blocking_queue<cv::Mat>>(q_orig_ref);
+  //auto hello = std::reference_wrapper<bool>( exitflag_ref);
+  //std::thread onethread(thread_display, exitflag_ref, q_disp_ref, std::string("output"));
+  //std::this_thread::sleep_for (std::chrono::seconds(1));
 /*  // init work thread
   std::thread threadswork[num_process_threads];
   for (int i=0; i<num_process_threads; i++)

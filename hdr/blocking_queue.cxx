@@ -26,3 +26,6 @@ typename blocking_queue<Alloc>::size_type \
   queue_.pop();
   return queue_.size();
 }
+
+//template<typename Alloc>
+//std::reference_wrapper<blocking_queue<cv::Mat>> 
