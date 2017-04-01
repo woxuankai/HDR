@@ -29,10 +29,13 @@ int main(int argc, char* argv[])
   // init disp thread
   threads.push_back(std::thread(thread_display, \
       exitflag_ref, q_disp_ref, std::string("output")));
+  std::cout << "thread display started" << std::endl;
   // init work thread
-  for (int i=0; i<num_process_threads; i++)
+  for (int i=0; i<num_process_threads; i++){
     threads.push_back(std::thread(thread_process, \
         exitflag_ref, q_orig_ref, q_disp_ref));
+    std::cout << "thread process " << i << " started" << std::endl;
+  }
   // init capture
   bool ifvideo;
   std::string path;
@@ -46,15 +49,17 @@ int main(int argc, char* argv[])
   cv::Size imgsize(640,480);
   cv::Mat origImg;
   std::thread threadvideo;
+  cv::VideoCapture cap;
   if(ifvideo){
-    cv::VideoCapture cap(0);
+    cap = cv::VideoCapture(0);
     cap.set(CV_CAP_PROP_FRAME_WIDTH, imgsize.width);
     // cv::CAP_PROP_FRAME_WIDTH won't work in opencv 2.x version
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, imgsize.height);
-    cap >> origImg;
+    cap.read(origImg);
     CV_Assert(origImg.size() == imgsize);
     threads.push_back(std::thread(thread_capture, \
         exitflag_ref, q_orig_ref, std::ref(cap)));
+    std::cout << "thread capture started" << std::endl;
   }else{
     // read as 8-bit unsigned
     origImg = imread(argv[1],cv::IMREAD_COLOR);
@@ -66,6 +71,7 @@ int main(int argc, char* argv[])
     origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
     threads.push_back(std::thread(thread_capture_img, \
         exitflag_ref, q_orig_ref, std::ref(origImg)));
+    std::cout << "thread capture_img started" << std::endl;
   }
   std::this_thread::sleep_for (std::chrono::seconds(60)); 
   // what to do during wait?
