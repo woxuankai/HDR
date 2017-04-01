@@ -5,11 +5,9 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <iostream>
 
-// an easy blocking queue for a Producer-Consumer model
-
-// as a protype, just provide a subset of all queue functions
-template<class Alloc>
+template<typename Alloc>
 class blocking_queue{//: protected std::queue{//too many functions to implement
 public:
   typedef typename std::queue<Alloc>::size_type size_type;
@@ -22,5 +20,6 @@ protected:
   std::queue<Alloc> queue_;
   std::condition_variable cond_var_;
 };
+
 
 #endif //__MY_BLOCKING_QUEUE

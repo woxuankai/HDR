@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -march=native ${CMAKE_CXX_FLAGS}")
 
@@ -11,4 +11,5 @@ add_library( blocking_queue blocking_queue.cxx)
 add_library( thread_functions thread_functions.cxx)
 
 add_executable( dohdr main.cpp )
-target_link_libraries( dohdr ${OpenCV_LIBS} pthread hdr blocking_queue thread_functions)
+set(LINK_LIBS thread_functions hdr blocking_queue ${OpenCV_LIBS} pthread)
+target_link_libraries( dohdr ${LINK_LIBS} ${LINK_LIBS})
