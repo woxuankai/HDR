@@ -90,7 +90,8 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	```shell
 	sudo apt-get update # 更新源	
 	sudo apt-get upgrade -y # 更新程序	
-	# 跟换发行版，升级系统	
+	# 重启系统，跟换发行版，升级系统	
+	sudo reboot
 	sudo cat <<EOF > /etc/apt/sources.list  
 	deb http://ports.ubuntu.com/ubuntu-ports/ xenial main universe
 	deb-src http://ports.ubuntu.com/ubuntu-ports/ xenial main universe
@@ -98,7 +99,7 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	# 更新更换过的源  
 	sudo apt-get update
 	# nfs-kernel-server在更新时出点小问题，所以事先删除，需要的时候再安装  
-	sudo apt-get --purge --auto-remove nfs-kernel-server
+	sudo apt-get --purge --auto-remove remove nfs-kernel-server
 	```
 
 2. 安装所需软件	
@@ -107,7 +108,8 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	sudo apt-get install build-essential cmake make git # 安装开发工具 # 安装时如果遇到提示是否替换某文件，一律选否	
 	sudo apt-get install libtbb-dev # 安装tbb		
 	sudo apt-get install libopencv-dev # 安装opencv
-	sudo apt-get bash-completion byobu # 一些小工具	
+	sudo apt-get bash-completion byobu # 一些小工具
+	sudo reboot
 	```
 	
 ## 测试		
