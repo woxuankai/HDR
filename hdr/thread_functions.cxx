@@ -78,13 +78,15 @@ void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
 // capture image as video
 void thread_capture_img(bool &exitflag, \
     blocking_queue<cv::Mat> &image_queue_out, cv::Mat &image){
+    auto wakeuptime = std::chrono::system_clock::now();
     while(!exitflag){
+      wakeuptime = wakeuptime + std::chrono::milliseconds(33);
+      std::this_thread::sleep_until(wakeuptime);
       if(image_queue_out.put(image.clone()) > critical_queue_size){
         std::cout << "image_queue_out full in thread_capture_img" << std::endl;
 	exitflag=true;
 	break;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(33));
     }
       std::cout << "capture_img thread exiting..." << \
 	  "(thread id: " << std::this_thread::get_id() << ")" << std::endl;
