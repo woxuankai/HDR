@@ -66,14 +66,15 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 				* linux用户
 	
 					```shell
-					sudo apt-get install #安装minicom
+					sudo apt-get install minicom #安装minicom
+					sudo apt-get install tigervnc-viewer #安装VNC client 方便在没有显示器的情况下使用图形界面
 					sudo minicom -s #配置minicom(/dev/USBtty0,115200,8n1)
 					sudo minicom
 					```
 		
 				* windows用户
 	
-					1. 下载putty
+					1. 下载putty, 下载VNC Viewer软件
 					2. 进入设备管理器，查看ch341的串口号
 					3. putty设置为相应的串口号,启动软件	
 					
@@ -89,6 +90,8 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 
 	```shell
 	sudo apt-get update # 更新源	
+	# 删除一些永不到的且更新费时间的包
+	sudo apt-get --purge --auto-remove libreoffice* chromiun*
 	sudo apt-get upgrade -y # 更新程序	
 	## 重启系统，跟换发行版，升级系统	
 	#sudo reboot
@@ -109,7 +112,8 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	sudo apt-get install libtbb-dev # 安装tbb		
 	sudo apt-get install libboost-all-dev # 安装boost  
 	sudo apt-get install libopencv-dev # 安装opencv
-	sudo apt-get bash-completion byobu # 一些小工具
+	sudo apt-get install bash-completion byobu # 一些小工具
+	sudo apt-get install tightvncserver # vnc server
 	sudo reboot
 	```
 	
@@ -129,10 +133,18 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	cd build
 	cmake -DCMAKE_BUILD_TYPE=Release ..
 	make -j4
+	vncserver # 第一次运行改命令时会提示设置密码，请记住设置的密码
 	```
 
 3. 运行		
 
-	```shell
-	./dohdr #  运行之前插上摄像头，且须在图形界面上运行	
-	```
+	1. 将USB摄像头插入cc-a80  
+	2. 打开图形界面
+		1. 有鼠标键盘显示器的：将鼠标键盘显示器插入cc-a80，登录图形界面
+		2. 无鼠标键盘显示器的：运行VNC viewer（其它VNC client也可），用ip地址加:1登录（ 例如192.168.1.123:1 ），输入之前设置的密码登录图形界面
+		3. 登录图形界面后，在桌面上双击运行LXTerminal程序
+	3. 在打开的LXTerminal中运行以下命令
+		```shell
+		cd ~/HDR/hdr/build
+		./dohdr #  运行之前插上摄像头，且须在图形界面上运行	
+		```
