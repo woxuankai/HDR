@@ -13,5 +13,5 @@ add_executable( dohdr main.cpp )
 set(LINK_LIBS thread_functions hdr ${OpenCV_LIBS} pthread)
 target_link_libraries( dohdr  ${LINK_LIBS})
 
-add_executable( tb_blocking_queue tb_blocking_queue.cxx )
-target_link_libraries( tb_blocking_queue ${OpenCV_LIBS})
+#add_executable( tb_blocking_queue tb_blocking_queue.cxx )
+#target_link_libraries( tb_blocking_queue ${OpenCV_LIBS})

@@ -21,7 +21,8 @@ public:
   }
   size_type get(Alloc &obj){ // return queue length after get
     std::unique_lock<std::mutex> lck(mtx_);
-    while(queue_.empty()) cond_var_.wait(lck);
+    //while(queue_.empty()) cond_var_.wait(lck);
+    cond_var_.wait(lck,[this]()->bool {return !queue_.empty(); });
     obj = queue_.front();
     queue_.pop();
     return queue_.size();
