@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 
+
 blocking_queue<cv::Mat>::size_type critical_queue_size = 30;
 
 void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
@@ -19,7 +20,6 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
     }
     static const int updatecnt_max = 10;//update fps every 10 times
     static int updatecnt = 0;
-    //static double alpha = 0.8;
     static double timeperframe=1/30.0*updatecnt_max;
     static double thistime=cv::getTickCount()/(double)cv::getTickFrequency();
     static double lasttime=thistime - timeperframe;
@@ -80,13 +80,15 @@ void thread_capture_img(bool &exitflag, \
     blocking_queue<cv::Mat> &image_queue_out, cv::Mat &image){
     auto wakeuptime = std::chrono::system_clock::now();
     while(!exitflag){
-      wakeuptime = wakeuptime + std::chrono::milliseconds(33);
+      wakeuptime = wakeuptime + std::chrono::microseconds(33333);
       std::this_thread::sleep_until(wakeuptime);
       if(image_queue_out.put(image.clone()) > critical_queue_size){
         std::cout << "image_queue_out full in thread_capture_img" << std::endl;
 	exitflag=true;
 	break;
       }
+      //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(\
+          std::chrono::system_clock::now() - wakeuptime).count() << std::endl;
     }
       std::cout << "capture_img thread exiting..." << \
 	  "(thread id: " << std::this_thread::get_id() << ")" << std::endl;

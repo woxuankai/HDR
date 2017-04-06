@@ -6,7 +6,7 @@
 
 
 const int maxrepeat=100;
-const int maxlength=30;
+const int maxlength=100;
 cv::Size imagesize(640,480);
 cv::Mat image = cv::Mat::ones(imagesize,CV_8UC3);
 cv::Mat tmpimage = image;
@@ -46,13 +46,15 @@ int main(int argc, char* argv[]){
   auto totalrepeats = maxlength * maxrepeat;
   typedef typename std::chrono::microseconds disptype;
   std::cout << "repeat " << totalrepeats << \
-      " times, in microseconds" << std::endl;
+      " times, average result in microseconds" << std::endl;
   std::cout << "clone: " << \
-      std::chrono::duration_cast<disptype>(time_clone).count() << std::endl;
+      std::chrono::duration_cast<disptype>(time_clone).count()/totalrepeats \
+      << std::endl;
   std::cout << "put  : " << \
-      std::chrono::duration_cast<disptype>(time_put).count() << std::endl;
+      std::chrono::duration_cast<disptype>(time_put).count()/totalrepeats \
+      << std::endl;
   std::cout << "get  : " << \
-      std::chrono::duration_cast<disptype>(time_get).count() << std::endl;
+      std::chrono::duration_cast<disptype>(time_get).count()/totalrepeats << std::endl;
   return 0;
 }
 
