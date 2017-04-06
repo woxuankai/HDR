@@ -131,7 +131,8 @@ Model > CubieBoard4 > Image > Ununtu-linaro-desktop
 	cd hdr
 	mkdir build
 	cd build
-	cmake -DCMAKE_BUILD_TYPE=Release ..
+	cmake ..
+	cmake -DCMAKE_BUILD_TYPE=Release .
 	make -j4
 	vncserver # 第一次运行改命令时会提示设置密码，请记住设置的密码
 	```
