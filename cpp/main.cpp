@@ -27,12 +27,12 @@ int main(int argc, char* argv[])
   const int num_process_threads = 4;
   std::deque<std::thread> threads;
   // init disp thread
-  threads.push_back(std::thread(thread_display, \
+  threads.push_front(std::thread(thread_display, \
       exitflag_ref, q_disp_ref, std::string("output")));
   std::cout << "thread display started" << std::endl;
   // init work thread
   for (int i=0; i<num_process_threads; i++){
-    threads.push_back(std::thread(thread_process, \
+    threads.push_front(std::thread(thread_process, \
         exitflag_ref, q_orig_ref, q_disp_ref));
     std::cout << "thread process " << i << " started" << std::endl;
   }
@@ -48,7 +48,6 @@ int main(int argc, char* argv[])
   }
   cv::Size imgsize(640,480);
   cv::Mat origImg;
-  std::thread threadvideo;
   cv::VideoCapture cap;
   if(ifvideo){
     cap = cv::VideoCapture(0);
@@ -61,20 +60,9 @@ int main(int argc, char* argv[])
       std::cout << "Can not open video_capture device : " << path << std::endl;
       return -1;
     }
-    //std::cout << (void*)origImg.data << std::endl;
-    
-    //cap.read(origImg);
-    //std::cout << (void*)origImg.data << std::endl;
-    
-    //cv::Mat tempmat = origImg.clone();
-    //origImg=cv::Mat::zeros(imgsize, CV_8UC3);
-    //std::cout << (void*)origImg.data << std::endl;
-    
     cap.read(origImg);
-    //std::cout << (void*)origImg.data << std::endl;
-    
     CV_Assert(origImg.size() == imgsize);
-    threads.push_back(std::thread(thread_capture, \
+    threads.push_front(std::thread(thread_capture, \
         exitflag_ref, q_orig_ref, std::ref(cap)));
     std::cout << "thread capture started" << std::endl;
   }else{
@@ -86,24 +74,42 @@ int main(int argc, char* argv[])
       return -1;
     }
     origImg=cv::Mat(origImg, cv::Rect(0, 0, 640, 480));
-    threads.push_back(std::thread(thread_capture_img, \
+    threads.push_front(std::thread(thread_capture_img, \
         exitflag_ref, q_orig_ref, std::ref(origImg)));
     std::cout << "thread capture_img started" << std::endl;
   }
-  std::this_thread::sleep_for (std::chrono::seconds(60)); 
+  
+  int check_interval_ms = 500;
+  int join_interval_ms = 100;
   // what to do during wait?
-  // 1.wait 100ms
+  // 1.wait some ms
   // 2.check if there is any thread joinable, if true, set exit flag
   // 3.check if exit flag is set, if set, try join threads, else go to 1
-  //while(
+  while(!exitflag){
+    std::this_thread::sleep_for(std::chrono::milliseconds(check_interval_ms));
+    //for(auto & onethread: threads){
+    //  if(onethread.joinable()){
+    //    exitflag=true;
+    //    break;
+    //  }
+    //}
+  }
 
+  //std::this_thread::sleep_for (std::chrono::seconds(60)); 
 // how to join a thread?
 // 1.wait 33ms, test if joinable;
 // 2.if not joinable, insert black image to a queue, goto 1; else join it
+  cv::Mat imageblack = cv::Mat::zeros(imgsize, CV_8UC3);
+  for (auto& onethread: threads){
+    //while(!onethread.joinable()){
+      q_orig.put(imageblack); // Now we donnot care if images share same
+      q_disp.put(imageblack); // data address
+      std::this_thread::sleep_for(std::chrono::milliseconds(join_interval_ms));
+    //}
+    onethread.join();
+  }
 
-  //for (auto& th: threads) th.join();
   return 0;
 }
 
-  //Mat imageblack = cv::Mat::zeros(imgsize, CV_8UC3);
 
