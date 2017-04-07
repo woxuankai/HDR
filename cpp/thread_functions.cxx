@@ -62,14 +62,21 @@ void thread_process(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
 void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
     cv::VideoCapture &cap){
   cv::Mat image;
+  void* lastdata = nullptr;
   while(!exitflag){
     cap.read(image);
-    if(image_queue_out.put(image.clone()) > critical_queue_size){
-      std::cout << "image_queue_out full in thread_capture!" << std::endl;
-      exitflag=true;
+    if(lastdata == (void*)image.data){
+      std::cout << "cap.read not allocating new space!" << std::endl;
       break;
     }
+    lastdata = (void*)image.data;
+    if(image_queue_out.put(image) > critical_queue_size){
+      std::cout << "image_queue_out full in thread_capture!" << std::endl;
+      break;
+    }
+    image.release();
   }
+  exitflag=true;
   std::cout << "capture thread exiting..." << \
       "(thread id: " << std::this_thread::get_id() << ")" << std::endl;
 }
