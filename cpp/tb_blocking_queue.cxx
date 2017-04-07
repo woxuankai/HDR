@@ -24,7 +24,7 @@ timepointtype stop = start;
 
 
 int main(int argc, char* argv[]){
-  blocking_queue<cv::Mat> q;
+  blocking_queue<cv::Mat> q(100);
   for(int repeatcnt = 0; repeatcnt < maxrepeat; repeatcnt++){
     for(int lengthcnt = 0; lengthcnt < maxlength; lengthcnt++){
       start = clocktype::now();
