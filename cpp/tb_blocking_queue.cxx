@@ -46,15 +46,19 @@ int main(int argc, char* argv[]){
   auto totalrepeats = maxlength * maxrepeat;
   typedef typename std::chrono::microseconds disptype;
   std::cout << "repeat " << totalrepeats << \
-      " times, average result in microseconds" << std::endl;
+      " times, average/total time in microseconds" << std::endl;
   std::cout << "clone: " << \
       std::chrono::duration_cast<disptype>(time_clone).count()/totalrepeats \
+      << "/" << std::chrono::duration_cast<disptype>(time_clone).count() \
       << std::endl;
   std::cout << "put  : " << \
       std::chrono::duration_cast<disptype>(time_put).count()/totalrepeats \
+      << "/" << std::chrono::duration_cast<disptype>(time_put).count() \
       << std::endl;
   std::cout << "get  : " << \
-      std::chrono::duration_cast<disptype>(time_get).count()/totalrepeats << std::endl;
+      std::chrono::duration_cast<disptype>(time_get).count()/totalrepeats \
+      << "/" << std::chrono::duration_cast<disptype>(time_get).count() \
+      << std::endl;
   return 0;
 }
 

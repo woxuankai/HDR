@@ -62,14 +62,15 @@ void thread_process(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
 void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
     cv::VideoCapture &cap){
   cv::Mat image;
-  void* lastdata = nullptr;
+  void* lastimageptr = nullptr;
   while(!exitflag){
     cap.read(image);
-    if(lastdata == (void*)image.data){
+    if(lastimageptr == (void*)image.ptr()){
+      // Mat data pointor should not be the same
       std::cout << "cap.read not allocating new space!" << std::endl;
       break;
     }
-    lastdata = (void*)image.data;
+    lastimageptr = (void*)image.ptr();
     if(image_queue_out.put(image) > critical_queue_size){
       std::cout << "image_queue_out full in thread_capture!" << std::endl;
       break;

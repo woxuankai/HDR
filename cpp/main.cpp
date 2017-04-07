@@ -55,7 +55,24 @@ int main(int argc, char* argv[])
     cap.set(CV_CAP_PROP_FRAME_WIDTH, imgsize.width);
     // cv::CAP_PROP_FRAME_WIDTH won't work in opencv 2.x version
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, imgsize.height);
+    if(!cap.isOpened())
+      cap.open(0);
+    if(!cap.isOpened()){
+      std::cout << "Can not open video_capture device : " << path << std::endl;
+      return -1;
+    }
+    //std::cout << (void*)origImg.data << std::endl;
+    
+    //cap.read(origImg);
+    //std::cout << (void*)origImg.data << std::endl;
+    
+    //cv::Mat tempmat = origImg.clone();
+    //origImg=cv::Mat::zeros(imgsize, CV_8UC3);
+    //std::cout << (void*)origImg.data << std::endl;
+    
     cap.read(origImg);
+    //std::cout << (void*)origImg.data << std::endl;
+    
     CV_Assert(origImg.size() == imgsize);
     threads.push_back(std::thread(thread_capture, \
         exitflag_ref, q_orig_ref, std::ref(cap)));
@@ -64,7 +81,7 @@ int main(int argc, char* argv[])
     // read as 8-bit unsigned
     origImg = imread(argv[1],cv::IMREAD_COLOR);
     //Mat origImg = imread(argv[1],IMREAD__ANYDEPTH | IMREAD_COLOR );
-    if (!origImg.data){
+    if (!origImg.ptr()){
       std::cout << "Unable to load image: " << argv[1] << std::endl;
       return -1;
     }

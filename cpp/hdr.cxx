@@ -21,11 +21,11 @@ hdr::~hdr(){
 };
 
 void hdr::process(cv::Mat &imgin, cv::Mat &imgout) {
-  CV_Assert(imgin.data == imgout.data);// in cal_BGR, input image is used
+  CV_Assert(imgin.ptr() == imgout.ptr());// in cal_BGR, input image is used
   CV_Assert(imgout.size() == imgsize);
   CV_Assert(imgin.size() == imgsize);
-  CV_Assert(imgout.data != nullptr);
-  CV_Assert(imgin.data != nullptr);
+  CV_Assert(imgout.ptr() != nullptr);
+  CV_Assert(imgin.ptr() != nullptr);
   CV_Assert(imgin.channels() == 3);
   CV_Assert(imgout.channels() == 3);
   cal_Lcone_Lrod(imgin, L_cone, L_rod);
@@ -46,16 +46,16 @@ void hdr::cal_Lcone_Lrod(const cv::Mat& srcBGR, cv::Mat& Lcone, cv::Mat& Lrod)
 #ifdef HDR_USE_ASSERT
   CV_Assert(srcBGR.depth() == CV_8U);
   CV_Assert(srcBGR.channels() == 3);
-  CV_Assert(srcBGR.data != NULL);
+  CV_Assert(srcBGR.ptr() != NULL);
 
   CV_Assert(Lcone.depth() == CV_16U);
   CV_Assert(Lcone.channels() == 1);
-  CV_Assert(Lcone.data != srcBGR.data);
+  CV_Assert(Lcone.ptr() != srcBGR.ptr());
   CV_Assert(Lcone.size == srcBGR.size);
 
   CV_Assert(Lrod.depth() == CV_16U);
   CV_Assert(Lrod.channels() == 1);
-  CV_Assert(Lrod.data != srcBGR.data);
+  CV_Assert(Lrod.ptr() != srcBGR.ptr());
   CV_Assert(Lrod.size == srcBGR.size);
 #endif
   
@@ -115,10 +115,10 @@ void hdr::cal_R(const cv::Mat& L, cv::Mat& R, float* table)
 #ifdef HDR_USE_ASSERT
   CV_Assert(L.depth() == CV_16U);
   CV_Assert(L.channels() == 1);
-  CV_Assert(L.data != NULL);
+  CV_Assert(L.ptr() != NULL);
   CV_Assert(R.depth() == CV_32F);
   CV_Assert(R.channels() == 1);
-  CV_Assert(R.data != L.data);
+  CV_Assert(R.ptr() != L.ptr());
   CV_Assert(R.size == L.size);
   CV_Assert(table != NULL);
 #endif
@@ -203,18 +203,18 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
 #ifdef HDR_USE_ASSERT
   CV_Assert(BGR.depth() == CV_8U);
   CV_Assert(BGR.channels() == 3);
-  CV_Assert(BGR.data != NULL);
+  CV_Assert(BGR.ptr() != NULL);
   CV_Assert(Lcone.depth() == CV_16U);
   CV_Assert(Lcone.channels() == 1);
-  CV_Assert(Lcone.data != BGR.data);
+  CV_Assert(Lcone.ptr() != BGR.ptr());
   CV_Assert(Lcone.size == BGR.size);
   CV_Assert(DOGcone.depth() == CV_32F);
   CV_Assert(DOGcone.channels() == 1);
-  CV_Assert(DOGcone.data != BGR.data);
+  CV_Assert(DOGcone.ptr() != BGR.ptr());
   CV_Assert(DOGcone.size == BGR.size);
   CV_Assert(DOGrod.depth() == CV_32F);
   CV_Assert(DOGrod.channels() == 1);
-  CV_Assert(DOGrod.data != BGR.data);
+  CV_Assert(DOGrod.ptr() != BGR.ptr());
   CV_Assert(DOGrod.size == BGR.size);
   CV_Assert(table_Lcone2a != NULL);
   CV_Assert(table_Lconepownegatives != NULL);
