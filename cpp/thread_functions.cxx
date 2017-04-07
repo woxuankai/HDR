@@ -7,10 +7,10 @@
 
 blocking_queue<cv::Mat>::size_type critical_queue_size = 30;
 
-void thread_display(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
+void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
     std::string windowname){
   namedWindow(windowname, cv::WINDOW_NORMAL);
-  cv::Mat* imageptr;
+  mat_ptr imageptr;
   while(!exitflag){
     image_queue_in.get(imageptr);
     imshow(windowname, *imageptr);
@@ -18,7 +18,6 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
       exitflag = true;
       break;
     }
-    delete imageptr;
     static const int updatecnt_max = 10;//update fps every 10 times
     static int updatecnt = 0;
     static double timeperframe=1/30.0*updatecnt_max;
@@ -38,9 +37,9 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
   return;
 }
 
-void thread_process(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
-    blocking_queue<cv::Mat*> &image_queue_out){
-  cv::Mat* imageptr;
+void thread_process(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
+    blocking_queue<mat_ptr> &image_queue_out){
+  mat_ptr imageptr;
   image_queue_in.get(imageptr);
   auto imgsize = imageptr->size();
   hdr image_processor(imgsize);
@@ -60,13 +59,13 @@ void thread_process(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
 }
 
 //capture from video or camera
-void thread_capture(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_out, \
+void thread_capture(bool &exitflag, blocking_queue<mat_ptr> &image_queue_out, \
     cv::VideoCapture &cap){
-  cv::Mat* imageptr = nullptr;
+  mat_ptr imageptr;
   void* lastimagedataptr = nullptr;
   cap.grab();
   while(!exitflag){
-    imageptr = new cv::Mat();
+    imageptr = mat_ptr(new cv::Mat());
     if(!cap.retrieve(*imageptr)){
       std::cout << "failed to grab!" << std::endl;
       break;
@@ -94,13 +93,13 @@ void thread_capture(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_out, \
 
 // capture image as video
 void thread_capture_img(bool &exitflag, \
-    blocking_queue<cv::Mat*> &image_queue_out, cv::Mat &image){
+    blocking_queue<mat_ptr> &image_queue_out, cv::Mat &image){
     auto wakeuptime = std::chrono::system_clock::now();
-    cv::Mat* imageptr=nullptr;
+    mat_ptr imageptr;
     while(!exitflag){
       wakeuptime = wakeuptime + std::chrono::microseconds(33333);
       std::this_thread::sleep_until(wakeuptime);
-      imageptr = new cv::Mat();
+      imageptr = mat_ptr(new cv::Mat());
       *imageptr = image.clone();
       if(image_queue_out.put(imageptr) > critical_queue_size){
         std::cout << "image_queue_out full in thread_capture_img" << std::endl;
