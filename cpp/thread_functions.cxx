@@ -63,10 +63,17 @@ void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
     cv::VideoCapture &cap){
   cv::Mat image;
   void* lastimageptr = nullptr;
+  cap.grab();
   while(!exitflag){
-    cap.read(image);
+    if(!cap.retrieve(image)){
+      std::cout << "failed to grab!" << std::endl;
+      break;
+    }
+    cap.grab();
     if(lastimageptr == (void*)image.ptr()){
       // Mat data pointor should not be the same
+      // in fact, I donnot think this check could not ensure that
+      // allocated data space is the same addr of any existing images
       std::cout << "cap.read not allocating new space!" << std::endl;
       break;
     }
