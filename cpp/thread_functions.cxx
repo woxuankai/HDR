@@ -7,17 +7,18 @@
 
 blocking_queue<cv::Mat>::size_type critical_queue_size = 30;
 
-void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
+void thread_display(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
     std::string windowname){
   namedWindow(windowname, cv::WINDOW_NORMAL);
-  cv::Mat image;
+  cv::Mat* imageptr;
   while(!exitflag){
-    image_queue_in.get(image);
-    imshow(windowname, image);
+    image_queue_in.get(imageptr);
+    imshow(windowname, *imageptr);
     if(cv::waitKey(1) >= 0){ //key pressed, exit
       exitflag = true;
       break;
     }
+    delete imageptr;
     static const int updatecnt_max = 10;//update fps every 10 times
     static int updatecnt = 0;
     static double timeperframe=1/30.0*updatecnt_max;
@@ -37,17 +38,17 @@ void thread_display(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
   return;
 }
 
-void thread_process(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
-    blocking_queue<cv::Mat> &image_queue_out){
-  cv::Mat image;
-  image_queue_in.get(image);
-  auto imgsize = image.size();
+void thread_process(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_in, \
+    blocking_queue<cv::Mat*> &image_queue_out){
+  cv::Mat* imageptr;
+  image_queue_in.get(imageptr);
+  auto imgsize = imageptr->size();
   hdr image_processor(imgsize);
-  image_queue_out.put(image);
+  image_queue_out.put(imageptr);
   while(!exitflag){
-    image_queue_in.get(image);
-    image_processor.process(image,image);
-    if(image_queue_out.put(image) > critical_queue_size){
+    image_queue_in.get(imageptr);
+    image_processor.process(*imageptr, *imageptr);
+    if(image_queue_out.put(imageptr) > critical_queue_size){
       std::cout << "image queue out full in thread_process!" << std::endl;
       exitflag=true;
       break;
@@ -59,30 +60,31 @@ void thread_process(bool &exitflag, blocking_queue<cv::Mat> &image_queue_in, \
 }
 
 //capture from video or camera
-void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
+void thread_capture(bool &exitflag, blocking_queue<cv::Mat*> &image_queue_out, \
     cv::VideoCapture &cap){
-  cv::Mat image;
-  void* lastimageptr = nullptr;
+  cv::Mat* imageptr = nullptr;
+  void* lastimagedataptr = nullptr;
   cap.grab();
   while(!exitflag){
-    if(!cap.retrieve(image)){
+    imageptr = new cv::Mat();
+    if(!cap.retrieve(*imageptr)){
       std::cout << "failed to grab!" << std::endl;
       break;
     }
     cap.grab();
-    if(lastimageptr == (void*)image.ptr()){
+    if(lastimagedataptr == (void*)imageptr->ptr()){
       // Mat data pointor should not be the same
       // in fact, I donnot think this check could not ensure that
       // allocated data space is the same addr of any existing images
       std::cout << "cap.read not allocating new space!" << std::endl;
       break;
     }
-    lastimageptr = (void*)image.ptr();
-    if(image_queue_out.put(image) > critical_queue_size){
+    lastimagedataptr = (void*)imageptr->ptr();
+    if(image_queue_out.put(imageptr) > critical_queue_size){
       std::cout << "image_queue_out full in thread_capture!" << std::endl;
       break;
     }
-    image.release();
+    //imageptr->release();
   }
   exitflag=true;
   std::cout << "capture thread exiting..." << \
@@ -92,12 +94,15 @@ void thread_capture(bool &exitflag, blocking_queue<cv::Mat> &image_queue_out, \
 
 // capture image as video
 void thread_capture_img(bool &exitflag, \
-    blocking_queue<cv::Mat> &image_queue_out, cv::Mat &image){
+    blocking_queue<cv::Mat*> &image_queue_out, cv::Mat &image){
     auto wakeuptime = std::chrono::system_clock::now();
+    cv::Mat* imageptr=nullptr;
     while(!exitflag){
       wakeuptime = wakeuptime + std::chrono::microseconds(33333);
       std::this_thread::sleep_until(wakeuptime);
-      if(image_queue_out.put(image.clone()) > critical_queue_size){
+      imageptr = new cv::Mat();
+      *imageptr = image.clone();
+      if(image_queue_out.put(imageptr) > critical_queue_size){
         std::cout << "image_queue_out full in thread_capture_img" << std::endl;
 	exitflag=true;
 	break;

@@ -9,7 +9,7 @@ const int maxrepeat=100;
 const int maxlength=100;
 cv::Size imagesize(640,480);
 cv::Mat image = cv::Mat::ones(imagesize,CV_8UC3);
-cv::Mat tmpimage = image;
+cv::Mat* tmpimage = &image;
 
 typedef typename std::chrono::steady_clock clocktype;
 typedef typename clocktype::duration durationtype;
@@ -24,11 +24,12 @@ timepointtype stop = start;
 
 
 int main(int argc, char* argv[]){
-  blocking_queue<cv::Mat> q;
+  blocking_queue<cv::Mat*> q;
   for(int repeatcnt = 0; repeatcnt < maxrepeat; repeatcnt++){
     for(int lengthcnt = 0; lengthcnt < maxlength; lengthcnt++){
       start = clocktype::now();
-      tmpimage = image.clone();
+      tmpimage = new cv::Mat();
+      *tmpimage = image.clone();
       stop = clocktype::now();
       time_clone += stop - start;
       start = clocktype::now();
@@ -41,6 +42,7 @@ int main(int argc, char* argv[]){
       q.get(tmpimage);
       stop = clocktype::now();
       time_get += stop - start;
+      delete tmpimage;
     }
   }
   auto totalrepeats = maxlength * maxrepeat;
