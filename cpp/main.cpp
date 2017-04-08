@@ -19,8 +19,8 @@ int main(int argc, char* argv[])
 {
   // init threads
   bool exitflag=false;
-  blocking_queue<cv::Mat> q_orig;
-  blocking_queue<cv::Mat> q_disp;
+  blocking_queue<mat_ptr> q_orig;
+  blocking_queue<mat_ptr> q_disp;
   auto exitflag_ref = std::ref<bool>(exitflag);
   auto q_orig_ref = std::ref(q_orig);
   auto q_disp_ref = std::ref(q_disp);
@@ -102,8 +102,13 @@ int main(int argc, char* argv[])
   cv::Mat imageblack = cv::Mat::zeros(imgsize, CV_8UC3);
   for (auto& onethread: threads){
     //while(!onethread.joinable()){
-      q_orig.put(imageblack); // Now we donnot care if images share same
-      q_disp.put(imageblack); // data address
+      mat_ptr ptr1, ptr2;
+      ptr1 = mat_ptr(new cv::Mat());
+      ptr2 = mat_ptr(new cv::Mat());
+      *ptr1 = imageblack.clone();
+      *ptr2 = imageblack.clone();
+      q_orig.put(ptr1); // Now we donnot care if images share same
+      q_disp.put(ptr2); // data address
       std::this_thread::sleep_for(std::chrono::milliseconds(join_interval_ms));
     //}
     onethread.join();

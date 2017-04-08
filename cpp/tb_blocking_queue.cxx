@@ -1,15 +1,18 @@
 #include <iostream>
 #include <chrono>
+#include <memory>
 #include <opencv2/opencv.hpp>
 #include "blocking_queue.hxx"
 
+
+typedef std::shared_ptr<cv::Mat> mat_ptr; 
 
 
 const int maxrepeat=100;
 const int maxlength=100;
 cv::Size imagesize(640,480);
 cv::Mat image = cv::Mat::ones(imagesize,CV_8UC3);
-cv::Mat tmpimage = image;
+mat_ptr tmpimage;
 
 typedef typename std::chrono::steady_clock clocktype;
 typedef typename clocktype::duration durationtype;
@@ -24,11 +27,12 @@ timepointtype stop = start;
 
 
 int main(int argc, char* argv[]){
-  blocking_queue<cv::Mat> q(100);
+  blocking_queue<mat_ptr> q(maxlength);
   for(int repeatcnt = 0; repeatcnt < maxrepeat; repeatcnt++){
     for(int lengthcnt = 0; lengthcnt < maxlength; lengthcnt++){
       start = clocktype::now();
-      tmpimage = image.clone();
+      tmpimage = mat_ptr(new cv::Mat());
+      *tmpimage = image.clone();
       stop = clocktype::now();
       time_clone += stop - start;
       start = clocktype::now();
