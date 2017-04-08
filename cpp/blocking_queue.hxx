@@ -1,6 +1,7 @@
 #ifndef __MY_BLOCKING_QUEUE
 #define __MY_BLOCKING_QUEUE
 
+#include <boost/circular_buffer.hpp>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
