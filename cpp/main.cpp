@@ -19,8 +19,8 @@ int main(int argc, char* argv[])
 {
   // init threads
   bool exitflag=false;
-  blocking_queue<mat_ptr> q_orig;
-  blocking_queue<mat_ptr> q_disp;
+  blocking_queue<mat_ptr> q_orig(critical_queue_size);
+  blocking_queue<mat_ptr> q_disp(critical_queue_size);
   auto exitflag_ref = std::ref<bool>(exitflag);
   auto q_orig_ref = std::ref(q_orig);
   auto q_disp_ref = std::ref(q_disp);

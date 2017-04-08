@@ -1,7 +1,6 @@
 #ifndef __MY_BLOCKING_QUEUE
 #define __MY_BLOCKING_QUEUE
 
-#include <boost/circular_buffer.hpp>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
@@ -11,7 +10,7 @@ template<class T>
 class blocking_queue{//: protected std::queue{//too many functions to implement
 public:
   typedef typename boost::circular_buffer<T>::size_type size_type;
-  blocking_queue(){}
+//  blocking_queue(){}
   blocking_queue(int capacity){
     queue_.set_capacity(capacity);
   }

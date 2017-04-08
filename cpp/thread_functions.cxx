@@ -47,7 +47,7 @@ void thread_process(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
   while(!exitflag){
     image_queue_in.get(imageptr);
     image_processor.process(*imageptr, *imageptr);
-    if(image_queue_out.put(imageptr) > critical_queue_size){
+    if(image_queue_out.put(imageptr) >= critical_queue_size){
       std::cout << "image queue out full in thread_process!" << std::endl;
       exitflag=true;
       break;
@@ -79,7 +79,7 @@ void thread_capture(bool &exitflag, blocking_queue<mat_ptr> &image_queue_out, \
       break;
     }
     lastimagedataptr = (void*)imageptr->ptr();
-    if(image_queue_out.put(imageptr) > critical_queue_size){
+    if(image_queue_out.put(imageptr) >= critical_queue_size){
       std::cout << "image_queue_out full in thread_capture!" << std::endl;
       break;
     }
@@ -101,7 +101,7 @@ void thread_capture_img(bool &exitflag, \
       std::this_thread::sleep_until(wakeuptime);
       imageptr = mat_ptr(new cv::Mat());
       *imageptr = image.clone();
-      if(image_queue_out.put(imageptr) > critical_queue_size){
+      if(image_queue_out.put(imageptr) >= critical_queue_size){
         std::cout << "image_queue_out full in thread_capture_img" << std::endl;
 	exitflag=true;
 	break;

@@ -40,12 +40,12 @@ int main(int argc, char* argv[]){
       stop = clocktype::now();
       time_put += stop - start;
     }
+    start = clocktype::now();
     for(int lengthcnt = 0; lengthcnt < maxlength; lengthcnt++){
-      start = clocktype::now();
       q.get(tmpimage);
-      stop = clocktype::now();
-      time_get += stop - start;
     }
+    stop = clocktype::now();
+    time_get += stop - start;
   }
   auto totalrepeats = maxlength * maxrepeat;
   typedef typename std::chrono::microseconds disptype;
