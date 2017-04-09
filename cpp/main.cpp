@@ -109,6 +109,9 @@ int main(int argc, char* argv[])
       *ptr2 = imageblack.clone();
       q_orig.put(ptr1); // Now we donnot care if images share same
       q_disp.put(ptr2); // data address
+      // In fact, pushing images to queue can not guarantee that next thread
+      // to be joined can fetch from queue when more than one consumers are
+      // waiting from the same queue.
       std::this_thread::sleep_for(std::chrono::milliseconds(join_interval_ms));
     //}
     onethread.join();
