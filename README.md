@@ -14,7 +14,8 @@
 	well, test images
 
 ## dependency
-*	c++11
+*	CMake
+*	C++11 compatible compiler
 *	OpenCV
 
 #	cubieboard4(cc-a80)配置  
