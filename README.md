@@ -1,7 +1,25 @@
-# HDR
+#	HDR
 基于人视觉构造高性能实现(移植)HDR算法
-## 环境配置
-### 刷写系统
+
+##	file layout
+*	cpp  
+	C++ implementation of hdr algorithm, with parallel computing using producer–consumer synchronization
+*	matlab  
+	matlab version of hdr algorithm, from PuXuan's master's thesis
+*	python  
+	python implementation of hdr algorithm, just for transformation from matlab functions to opencv, quiet slow
+*	reference  
+	references, including PuXuan's master's thesis
+*	testiamges  
+	well, test images
+
+## dependency
+*	c++11
+*	OpenCV
+
+#	cubieboard4(cc-a80)配置  
+##	环境配置
+###	刷写系统
 1. 打开[官方论坛](http://www.cubie.cc/forum.php), 在第一行找到 “国内下载”
 
 2. 点开链接后进入百度云盘界面，依次选择
