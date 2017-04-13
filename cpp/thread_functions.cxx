@@ -3,16 +3,28 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 
 
 blocking_queue<cv::Mat>::size_type critical_queue_size = 30;
 
 void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
     std::string windowname){
+  double fps=0;
+  std::string fpsstr="0";
+  std::stringstream ss;
+  double fontscale=1;
+  cv::Scalar textcolor(0,0,255);
   namedWindow(windowname, cv::WINDOW_AUTOSIZE);
   mat_ptr imageptr;
   while(!exitflag){
     image_queue_in.get(imageptr);
+    ss << std::setprecision(4) << fps << std::endl;
+    ss >> fpsstr;
+    cv::putText(*imageptr, std::string("fps:")+fpsstr, \
+        cv::Point(0, (imageptr->rows)*0.95), \
+        cv::FONT_HERSHEY_SIMPLEX, fontscale, textcolor);
     imshow(windowname, *imageptr);
     if(cv::waitKey(1) >= 0){ //key pressed, exit
       exitflag = true;
@@ -26,10 +38,10 @@ void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
     if(++updatecnt >= updatecnt_max){
       updatecnt = 0;
       thistime=cv::getTickCount()/(double)cv::getTickFrequency();
-      //timeperframe = timeperframe*alpha + (thistime-lasttime)*(1-alpha);
       timeperframe = thistime-lasttime;
       lasttime=thistime;
-      std::cout << "\rfps: " << 1/timeperframe*updatecnt_max << std::endl;
+      fps=1/timeperframe*updatecnt_max;
+      //std::cout << "\rfps: " << fps << std::endl;
     }
   }
   std::cout << "display thread exiting..." << \
