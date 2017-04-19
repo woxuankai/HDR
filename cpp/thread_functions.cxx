@@ -19,7 +19,10 @@ void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
   namedWindow(windowname, cv::WINDOW_AUTOSIZE);
   mat_ptr imageptr;
   while(!exitflag){
-    image_queue_in.get(imageptr);
+    if(image_queue_in.get(imageptr) >= 1){
+      std::cout << "Warning: thread_display ignored one frame" << std::endl;
+      continue;
+    }
     ss << std::setprecision(4) << fps << std::endl;
     ss >> fpsstr;
     cv::putText(*imageptr, std::string("fps:")+fpsstr, \
