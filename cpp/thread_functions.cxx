@@ -23,17 +23,17 @@ void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
       std::cout << "Warning: thread_display ignored one frame" << std::endl;
       continue;
     }
-    ss << std::setprecision(4) << fps << std::endl;
+    /*ss << std::setprecision(4) << fps << std::endl;
     ss >> fpsstr;
     cv::putText(*imageptr, std::string("fps:")+fpsstr, \
         cv::Point(0, (imageptr->rows)*0.95), \
-        cv::FONT_HERSHEY_SIMPLEX, fontscale, textcolor);
+        cv::FONT_HERSHEY_SIMPLEX, fontscale, textcolor);*/
     imshow(windowname, *imageptr);
     if(cv::waitKey(1) >= 0){ //key pressed, exit
       exitflag = true;
       break;
     }
-    static const int updatecnt_max = 10;//update fps every 10 times
+    /*static const int updatecnt_max = 10;//update fps every 10 times
     static int updatecnt = 0;
     static double timeperframe=1/30.0*updatecnt_max;
     static double thistime=cv::getTickCount()/(double)cv::getTickFrequency();
@@ -45,7 +45,7 @@ void thread_display(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
       lasttime=thistime;
       fps=1/timeperframe*updatecnt_max;
       //std::cout << "\rfps: " << fps << std::endl;
-    }
+    }*/
   }
   std::cout << "display thread exiting..." << \
       "(thread id: " << std::this_thread::get_id() << ")" << std::endl;
