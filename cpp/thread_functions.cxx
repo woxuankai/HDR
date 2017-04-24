@@ -61,7 +61,9 @@ void thread_process(bool &exitflag, blocking_queue<mat_ptr> &image_queue_in, \
   image_queue_out.put(imageptr);
   while(!exitflag){
     image_queue_in.get(imageptr);
-    image_processor.process(*imageptr, *imageptr);
+    cv::Mat imgout(imageptr->size(), imageptr->type());
+    image_processor.process(*imageptr, imgout);
+    cv::hconcat(*imageptr, imgout, *imageptr);
     if(image_queue_out.put(imageptr) > critical_queue_size){
       std::cout << "image queue out full in thread_process!" << std::endl;
       exitflag=true;

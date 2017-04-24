@@ -21,7 +21,7 @@ hdr::~hdr(){
 };
 
 void hdr::process(cv::Mat &imgin, cv::Mat &imgout) {
-  CV_Assert(imgin.ptr() == imgout.ptr());// in cal_BGR, input image is used
+  //CV_Assert(imgin.ptr() == imgout.ptr());// in cal_BGR, input image is used
   CV_Assert(imgout.size() == imgsize);
   CV_Assert(imgin.size() == imgsize);
   CV_Assert(imgout.ptr() != nullptr);
@@ -33,7 +33,7 @@ void hdr::process(cv::Mat &imgin, cv::Mat &imgout) {
   cal_R(L_rod, R_rod, table_L2R_rod);
   filter2D(R_cone, DOG_cone, CV_32F, hh);
   filter2D(R_rod, DOG_rod, CV_32F, hh);
-  cal_BGR(L_cone, DOG_cone, DOG_rod, imgout,\
+  cal_BGR(L_cone, DOG_cone, DOG_rod, imgin, imgout,\
 	  table_Lcone2a,table_Lconepownegatives);
   return;
 }
@@ -196,7 +196,8 @@ void hdr::cal_Lconepownegatives_table(float* table, float s)
 
 void hdr::cal_BGR(const cv::Mat& Lcone,\
 	     const cv::Mat& DOGcone, const cv::Mat& DOGrod,\
-	     cv::Mat& BGR,\
+	     const cv::Mat& BGR,\
+       cv::Mat& BGRout,\
 	     float *table_Lcone2a,\
 	     float *table_Lconepownegatives)
 {
@@ -204,18 +205,22 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
   CV_Assert(BGR.depth() == CV_8U);
   CV_Assert(BGR.channels() == 3);
   CV_Assert(BGR.ptr() != NULL);
+  CV_Assert(BGRout.depth() == CV_8U);
+  CV_Assert(BGRout.channels() == 3);
+  CV_Assert(BGRout.ptr() != NULL);
+  CV_Assert(BGRout.size() == BGR.size());
   CV_Assert(Lcone.depth() == CV_16U);
   CV_Assert(Lcone.channels() == 1);
   CV_Assert(Lcone.ptr() != BGR.ptr());
-  CV_Assert(Lcone.size == BGR.size);
+  CV_Assert(Lcone.size() == BGR.size());
   CV_Assert(DOGcone.depth() == CV_32F);
   CV_Assert(DOGcone.channels() == 1);
   CV_Assert(DOGcone.ptr() != BGR.ptr());
-  CV_Assert(DOGcone.size == BGR.size);
+  CV_Assert(DOGcone.size() == BGR.size());
   CV_Assert(DOGrod.depth() == CV_32F);
   CV_Assert(DOGrod.channels() == 1);
   CV_Assert(DOGrod.ptr() != BGR.ptr());
-  CV_Assert(DOGrod.size == BGR.size);
+  CV_Assert(DOGrod.size() == BGR.size());
   CV_Assert(table_Lcone2a != NULL);
   CV_Assert(table_Lconepownegatives != NULL);
 #endif
@@ -229,10 +234,15 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
   int nRows = BGR.rows;
   int nCols = BGR.cols;
 
+  //CV_Assert(BGRout.channel() == channels);
+  //CV_Assert(BGRout.rows == nRows);
+  //CV_Assert(BGRout.cols
+
   if ((BGR.isContinuous())&&\
       (Lcone.isContinuous())&&\
       (DOGcone.isContinuous())&&\
-      (DOGrod.isContinuous()))
+      (DOGrod.isContinuous())&&\
+      (BGRout.isContinuous()))
     {
       nCols *= nRows;
       nRows = 1;
@@ -240,16 +250,18 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
 
   for(int i = 0; i < nRows; ++i)
     {
-      uint8_t *pBGR;
+      const uint8_t *pBGR;
+      uint8_t *pBGRout;
       const uint16_t *pLcone;
       const float *pDOGcone, *pDOGrod;
       float tempbgr;
       pBGR = BGR.ptr<uint8_t>(i);
+      pBGRout = BGRout.ptr<uint8_t>(i);
       pLcone = Lcone.ptr<uint16_t>(i);
       pDOGcone = DOGcone.ptr<float>(i);
       pDOGrod = DOGrod.ptr<float>(i);
 
-      for (int j = 0; j < nCols; ++j)
+    for (int j = 0; j < nCols; ++j)
         {
 	  int BGRj = j * channels;
 	  uint16_t Lconevalue;
@@ -270,7 +282,7 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
 	    tempbgr = 0;
 	  if(tempbgr > UINT8_MAX)
 	    tempbgr = UINT8_MAX;
-	  pBGR[BGRj] = tempbgr;
+	  pBGRout[BGRj] = tempbgr;
 
 	  tempbgr = pBGR[BGRj+1]*\
 	    table_Lconepownegatives[Lconevalue]*\
@@ -279,7 +291,7 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
 	    tempbgr = 0;
 	  if(tempbgr > UINT16_MAX)
 	    tempbgr = UINT16_MAX;
-	  pBGR[BGRj+1] = tempbgr;
+	  pBGRout[BGRj+1] = tempbgr;
 
 	  tempbgr = pBGR[BGRj+2]*\
 	    table_Lconepownegatives[Lconevalue]*\
@@ -288,7 +300,7 @@ void hdr::cal_BGR(const cv::Mat& Lcone,\
 	    tempbgr = 0;
 	  if(tempbgr > UINT8_MAX)
 	    tempbgr = UINT8_MAX;
-	  pBGR[BGRj+2] = tempbgr;
+	  pBGRout[BGRj+2] = tempbgr;
 	}
     }
   return;

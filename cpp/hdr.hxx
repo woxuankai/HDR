@@ -32,7 +32,7 @@ protected:
   void cal_R(const cv::Mat& L, cv::Mat& R, float* table);
   void cal_BGR(const cv::Mat& Lcone,\
       const cv::Mat& DOGcone, const cv::Mat& DOGrod,\
-      cv::Mat& BGR,\
+      const cv::Mat& BGR, cv::Mat& BGRout,\
       float *table_Lcone2a,\
       float *table_Lconepownegatives);
 
