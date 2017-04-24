@@ -11,10 +11,10 @@ template<class T>
 class blocking_queue{//: protected std::queue{//too many functions to implement
 public:
   typedef typename std::queue<T>::size_type size_type;
-  inline blocking_queue();
-  inline ~blocking_queue();
-  inline size_type put(const T &obj); // return queue length after put
-  inline size_type get(T &obj); // return queue length after get
+  blocking_queue();
+  ~blocking_queue();
+  size_type put(const T &obj); // return queue length after put
+  size_type get(T &obj); // return queue length after get
 protected:
   std::mutex mtx_; // queue mutex
   std::queue<T> queue_;
